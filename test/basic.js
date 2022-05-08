@@ -23,9 +23,31 @@ tape('encode/decode works', function (t) {
   
   //console.log(jsonMsg)
 
-  t.deepEqual(jsonMsg.key, 'ssb:message/butt2-v1/kB_IWWTikAbTVBcL6EMWcvdvdqtNWjdPBbXC7_xHW50=', 'key is correct')
+  const msgKey = 'ssb:message/butt2-v1/kB_IWWTikAbTVBcL6EMWcvdvdqtNWjdPBbXC7_xHW50='
+
+  t.deepEqual(jsonMsg.key, msgKey, 'key is correct')
   t.deepEqual(jsonMsg.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
+  t.deepEqual(jsonMsg.value.sequence, 1, 'correct sequence')
+  t.deepEqual(jsonMsg.value.previous, null, 'correct previous')
   t.deepEqual(jsonMsg.value.content, content, 'content is the same')
+
+  const content2 = { type: 'post', text: 'Hello butty world!' }
+  const timestamp2 = 1652037377205
+
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE, timestamp2, null)
+
+  const data2 = butt2.extractData(butt2Msg2)
+  const msg2 = butt2.butt2ToBipf(data2, msgKeyBFE2)
+
+  const jsonMsg2 = bipf.decode(msg2, 0)
+
+  //console.log(jsonMsg2)
+
+  t.deepEqual(jsonMsg2.key, 'ssb:message/butt2-v1/-5rUxNdp5fdwKJpiCyU8yIK9-FsF8p4b5_v5q9xUBek=', 'key is correct')
+  t.deepEqual(jsonMsg2.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
+  t.deepEqual(jsonMsg2.value.sequence, 2, 'correct sequence')
+  t.deepEqual(jsonMsg2.value.previous, msgKey, 'correct previous')
+  t.deepEqual(jsonMsg2.value.content, content2, 'content is the same')
 
   t.end()
 })
