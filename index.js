@@ -118,7 +118,7 @@ function encodeMsgIdToBFE(buffer) {
   ])
 }
 
-const tag = {
+const tags = {
   SSB_FEED: Buffer.from([0]),
   END_OF_FEED: Buffer.from([1])
 }
@@ -171,7 +171,7 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
     sequence,
     parseInt(timestamp),
     backlinkBFE,
-    tag.SSB_FEED,
+    tags.SSB_FEED,
     contentBipf.length,
     contentHash
   ]
@@ -231,7 +231,7 @@ function validateBase(data, previousData, previousKeyBFE) {
     if (Buffer.compare(backlinkBFE, previousKeyBFE) !== 0)
       return 'Backlink does not match key of previous message'
 
-    if (Buffer.compare(tagPrev, END_OF_FEED) === 0)
+    if (Buffer.compare(tagPrev, tags.END_OF_FEED) === 0)
       return 'Feed already terminated'
   } else {
     if (sequence !== 1)

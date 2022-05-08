@@ -41,11 +41,22 @@ tape('validate', function (t) {
   const backlinksBFE = Buffer.from([6,2]) //  null
   const timestamp = 1652037377204
 
-  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, null)
+  const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, null)
 
-  const data = butt2.extractData(butt2Msg)
-  const msgKeyBFEValidate = butt2.validateSingle(data, null, null, null)
+  const data = butt2.extractData(butt2Msg1)
+  const msgKeyBFEValidate1 = butt2.validateSingle(data, null, null, null)
 
-  t.deepEqual(msgKeyBFE, msgKeyBFEValidate, 'validate no err, generates correct key')
+  t.deepEqual(msgKeyBFE1, msgKeyBFEValidate1, 'validate no err, generates correct key')
+
+  const content2 = { type: 'post', text: 'Hello butty world!' }
+  const timestamp2 = 1652037377205
+
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp2, null)
+
+  const data2 = butt2.extractData(butt2Msg2)
+  const msgKeyBFEValidate2 = butt2.validateSingle(data2, data, msgKeyBFEValidate1, null)
+
+  t.deepEqual(msgKeyBFE2, msgKeyBFEValidate2, 'validate no err, generates correct key')
+
   t.end()
 })
