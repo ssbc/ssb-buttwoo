@@ -1,5 +1,8 @@
 const bipf = require('bipf')
 const bfe = require('ssb-bfe')
+const blake3 = require('blake3')
+const ssbKeys = require('ssb-keys')
+const varint = require('varint')
 
 function extractData(b) {
   const [valueSignature, contentBipf] = bipf.decode(b, 0)
@@ -19,6 +22,8 @@ const authorLength = bipf.encodingLength('author')
 const sequenceLength = bipf.encodingLength('sequence')
 const timestampLength = bipf.encodingLength('timestamp')
 const previousLength = bipf.encodingLength('previous')
+const signaturesLength = bipf.encodingLength('signatures')
+const tagLength = bipf.encodingLength('tag')
 const contentLength = bipf.encodingLength('content')
 const keyLength = bipf.encodingLength('key')
 const valueLength = bipf.encodingLength('value')
@@ -29,10 +34,10 @@ function varintLength(len) {
   return varint.encodingLength(len << TAG_SIZE) + len
 }
 
-function butt2toBipf(data, msgKeyBFE) {
+function butt2ToBipf(data, msgKeyBFE) {
   const [valueSignature, contentBipf] = data[0]
   const [encodedValue, signatures] = data[1]
-  const [authorBFE, sequence, timestamp, backlinkBFE] = data[2]
+  const [authorBFE, sequence, timestamp, backlinkBFE, tag] = data[2]
 
   const author = bfe.decode(authorBFE)
   const backlink = bfe.decode(backlinkBFE)
@@ -48,7 +53,11 @@ function butt2toBipf(data, msgKeyBFE) {
   valueObjSize += bipf.encodingLength(backlink)
   valueObjSize += contentLength
   valueObjSize += contentBipf.length
-
+  valueObjSize += signaturesLength
+  valueObjSize += bipf.encodingLength(signatures)
+  valueObjSize += tagLength
+  valueObjSize += bipf.encodingLength(tag)
+  
   let kvtObjSize = keyLength
   kvtObjSize += bipf.encodingLength(msgKey)
   kvtObjSize += valueLength
@@ -85,9 +94,11 @@ function butt2toBipf(data, msgKeyBFE) {
   p += bipf.encode(backlink, kvtBuffer, p)
   p += bipf.encode('content', kvtBuffer, p)
   contentBipf.copy(kvtBuffer, p, 0, contentBipf.length)
-
-  // FIXME: write signatures as well
-  // FIXME: write tag as well
+  p += contentBipf.length
+  p += bipf.encode('signatures', kvtBuffer, p)
+  p += bipf.encode(signatures, kvtBuffer, p)
+  p += bipf.encode('tag', kvtBuffer, p)
+  p += bipf.encode(tag, kvtBuffer, p)
   
   //console.log("msg", bipf.decode(kvtBuffer, 0))
   return kvtBuffer
@@ -175,10 +186,10 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
 
   // encoded for hash
   const valueSignature = bipf.allocAndEncode([encodedValue, signatures])
-  const msgKey = encodeMsgIdToBFE(blake3.hash(valueSignature))
+  const msgKeyBFE = encodeMsgIdToBFE(blake3.hash(valueSignature))
 
   return [
-    msgKey,
+    msgKeyBFE,
     bipf.allocAndEncode([valueSignature, contentBipf])
   ]
 }

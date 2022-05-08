@@ -9,7 +9,17 @@
   },
   "dependencies": {
     "bipf": "^1.6.3",
-    "ssb-bfe": "^3.1.3"
+    "blake3": "^2.1.7",
+    "ssb-bfe": "^3.1.3",
+    "ssb-keys": "^8.2.1"
+  },
+  "devDependencies": {
+    "tap-arc": "^0.3.4",
+    "tap-bail": "^1.0.0",
+    "tape": "^5.2.2"
+  },
+  "scripts": {
+    "test": "tape test/*.js | tap-bail | tap-arc"
   },
   "author": "Anders Rune Jensen <arj03@protonmail.ch>",
   "license": "LGPL-3.0"
