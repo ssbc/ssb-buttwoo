@@ -29,3 +29,23 @@ tape('encode/decode works', function (t) {
 
   t.end()
 })
+
+tape('validate', function (t) {
+  const keys = {
+    curve: 'ed25519',
+    public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
+    private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
+    id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
+  }
+  const content = { type: 'post', text: 'Hello world!' }
+  const backlinksBFE = Buffer.from([6,2]) //  null
+  const timestamp = 1652037377204
+
+  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, null)
+
+  const data = butt2.extractData(butt2Msg)
+  const msgKeyBFEValidate = butt2.validateSingle(data, null, null, null)
+
+  t.deepEqual(msgKeyBFE, msgKeyBFEValidate, 'validate no err, generates correct key')
+  t.end()
+})

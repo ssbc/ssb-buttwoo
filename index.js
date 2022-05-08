@@ -244,7 +244,7 @@ function validateBase(data, previousData, previousKeyBFE) {
   return encodeMsgIdToBFE(blake3.hash(valueSignature))
 }
 
-function validateSignature(data) {
+function validateSignature(data, hmacKey) {
   const [valueSignature] = data[0]
   const [encodedValue, signatures] = data[1]
   const [authorBFE, sequence, timestamp, backlink] = data[2]
@@ -256,16 +256,18 @@ function validateSignature(data) {
   }
 }
 
-function validateSingle(data) {
-  const msgKeyBFE = validateBase(data, previousData, previousKeyBFE)
+function validateSingle(data, previousData, previousKeyBFE, hmacKey) {
+  const msgKeyBFEorErr = validateBase(data, previousData, previousKeyBFE)
   // FIXME: error handling
-  validateSignature(data)
-  return msgKeyBFE
+  const err = validateSignature(data, hmacKey)
+  if (err) return err
+  else return msgKeyBFEorErr
 }
 
-function validateBatch(batch) {
+function validateBatch(batch, previousData, previousKeyBFE) {
   const keys = []
   for (data of batch) {
+    // FIXME: update previous
     keys.push(validateBase(data, previousData, previousKeyBFE))
     // FIXME: error handling
     // FIXME: figure out if we can use batch signatures
