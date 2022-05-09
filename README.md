@@ -1,6 +1,10 @@
 # SSB butt2
 
-An implementation of [ssb-butt2-format] in JavaScript.
+An implementation of [ssb-butt2-format] in JS.
+
+Requires a few changes upstream:
+ - https://github.com/staltz/ssb-uri2/pull/7
+ - https://github.com/ssb-ngi-pointer/ssb-bfe-spec/pull/23
 
 Work in progress!
 
