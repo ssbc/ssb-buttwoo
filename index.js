@@ -204,14 +204,14 @@ function validateBase(data, previousData, previousKeyBFE) {
          contentSize, contentHash] = data[2]
 
   if (contentBipf.length !== contentSize)
-    return 'Content size does not match content'
+    return new Error('Content size does not match content')
 
   const testedContentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
   if (Buffer.compare(testedContentHash, contentHash) !== 0)
-    return 'Content hash does not match content'
+    return new Error('Content hash does not match content')
 
   if (typeof timestamp !== 'number' || isNaN(timestamp) || !isFinite(timestamp))
-    return `invalid message: timestamp is "${timestamp}", expected a JavaScript number`
+    return new Error(`invalid message: timestamp is "${timestamp}", expected a JavaScript number`)
 
   // FIXME: check if correct BFE types!
   // FIXME: check length of content
@@ -223,28 +223,26 @@ function validateBase(data, previousData, previousKeyBFE) {
            backlinkBFEPrev, tagPrev] = previousData[2]
 
     if (Buffer.compare(authorBFE, authorBFEPrev) !== 0)
-      return 'Author does not match previous message'
+      return new Error('Author does not match previous message')
 
     if (sequence !== sequencePrev + 1)
-      return 'Sequence must increase'
+      return new Error('Sequence must increase')
     
     if (timestamp <= timestampPrev)
-      return 'Timestamp must increase'
+      return new Error('Timestamp must increase')
 
     if (Buffer.compare(backlinkBFE, previousKeyBFE) !== 0)
-      return 'Backlink does not match key of previous message'
+      return new Error('Backlink does not match key of previous message')
 
     if (Buffer.compare(tagPrev, tags.END_OF_FEED) === 0)
-      return 'Feed already terminated'
+      return new Error('Feed already terminated')
   } else {
     if (sequence !== 1)
-      return 'Sequence must be 1 for first message'
+      return new Error('Sequence must be 1 for first message')
 
     if (Buffer.compare(backlinkBFE, Buffer.from([6,2])) !== 0)
-      return 'Backlink must be nil for first message'
+      return new Error('Backlink must be nil for first message')
   }
-
-  return encodeMsgIdToBFE(blake3.hash(valueSignature))
 }
 
 function validateSignature(data, backlinks, hmacKey) {
@@ -255,37 +253,33 @@ function validateSignature(data, backlinks, hmacKey) {
 
   if (backlinks) {
     const backlinksBuffer = Buffer.concat(backlinks)
-    if (!ssbKeys.verify(key, signatures[sequence-backlinks.length], hmacKey, backlinksBuffer)) {
-      console.log("bulk signature does not match", sequence)
-      return 'Bulk signature does not match'
-    }
+    if (!ssbKeys.verify(key, signatures[sequence-backlinks.length], hmacKey, backlinksBuffer))
+      return new Error('Bulk signature does not match')
   }
 
-  if (!ssbKeys.verify(key, signatures[sequence], hmacKey, encodedValue)) {
-    console.log("signature does not match")
-    return 'Signature does not match encoded value'
-  }
+  if (!ssbKeys.verify(key, signatures[sequence], hmacKey, encodedValue))
+    return new Error('Signature does not match encoded value')
 }
 
 function validateSingle(data, previousData, previousKeyBFE, hmacKey) {
-  const msgKeyBFEorErr = validateBase(data, previousData, previousKeyBFE)
-  if (typeof msgKeyBFEorErr === 'string') return msgKeyBFEorErr
-
-  const err = validateSignature(data, null, hmacKey)
+  const err = validateBase(data, previousData, previousKeyBFE)
   if (err) return err
-  else return msgKeyBFEorErr
+
+  const errS = validateSignature(data, null, hmacKey)
+  if (errS) return errS
 }
 
 function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
   const keys = []
   for (let i = 0; i < batch.length; ++i) {
     const data = batch[i]
-    const msgKeyBFEorErr = validateBase(data, previousData, previousKeyBFE)
-    if (typeof msgKeyBFEorErr === 'string') return msgKeyBFEorErr
-    previousData = data
-    previousKeyBFE = msgKeyBFEorErr
+    const err = validateBase(data, previousData, previousKeyBFE)
+    if (err) return err
 
-    keys.push(msgKeyBFEorErr)
+    previousData = data
+    previousKeyBFE = hash(data)
+
+    keys.push(previousKeyBFE)
   }
 
   for (let i = batch.length - 1; i >= 0; --i) {
@@ -310,6 +304,11 @@ function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
   return keys
 }
 
+function hash(data) {
+  const [valueSignature] = data[0]
+  return encodeMsgIdToBFE(blake3.hash(valueSignature))
+}
+
 module.exports = {
   extractData,
 
@@ -322,4 +321,6 @@ module.exports = {
 
   validateSingle,
   validateBatch,
+
+  hash
 }

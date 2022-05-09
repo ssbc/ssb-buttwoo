@@ -76,8 +76,10 @@ tape('validate', function (t) {
   const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, BFE_NIL, timestamp, butt2.tags.SSB_FEED, null, hmacKey)
 
   const data = butt2.extractData(butt2Msg1)
-  const msgKeyBFEValidate1 = butt2.validateSingle(data, null, null, null)
+  const err1 = butt2.validateSingle(data, null, null, null)
+  const msgKeyBFEValidate1 = butt2.hash(data)
 
+  t.notOk(err1)
   t.deepEqual(msgKeyBFE1, msgKeyBFEValidate1, 'validate no err, generates correct key')
 
   const content2 = { type: 'post', text: 'Hello butty world!' }
@@ -85,8 +87,10 @@ tape('validate', function (t) {
   const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp+1, butt2.tags.END_OF_FEED, null, hmacKey)
 
   const data2 = butt2.extractData(butt2Msg2)
-  const msgKeyBFEValidate2 = butt2.validateSingle(data2, data, msgKeyBFEValidate1, null)
+  const err2 = butt2.validateSingle(data2, data, msgKeyBFEValidate1, null)
+  const msgKeyBFEValidate2 = butt2.hash(data2)
 
+  t.notOk(err2)
   t.deepEqual(msgKeyBFE2, msgKeyBFEValidate2, 'validate no err, generates correct key')
 
   const content3 = { type: 'post', text: 'Sneaky world!' }
@@ -95,7 +99,7 @@ tape('validate', function (t) {
   const data3 = butt2.extractData(butt2Msg3)
   const err = butt2.validateSingle(data3, data2, msgKeyBFEValidate2, null)
 
-  t.deepEqual('Feed already terminated', err, 'Unable to extend terminated feed')
+  t.deepEqual('Feed already terminated', err.message, 'Unable to extend terminated feed')
   t.end()
 })
 
