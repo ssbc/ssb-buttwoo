@@ -156,8 +156,7 @@ function msgValToButt2(msgVal) {
 }
 
 // FIXME: boxer
-// FIXME: backlinks if needed for signature
-function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, hmacKey) {
+function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, backlinks, hmacKey) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(content)
   const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
@@ -181,6 +180,12 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, hmacKey
 
   const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
   signatures[sequence] = base64ToBuffer(signature)
+
+  if (backlinks) {
+    const backlinksBuffer = Buffer.concat(backlinks)
+    const backlinksSignature = ssbKeys.sign(keys, hmacKey, backlinksBuffer)
+    signatures[sequence-backlinks.length] = base64ToBuffer(backlinksSignature)
+  }
 
   // encoded for hash
   const valueSignature = bipf.allocAndEncode([encodedValue, signatures])
@@ -242,34 +247,65 @@ function validateBase(data, previousData, previousKeyBFE) {
   return encodeMsgIdToBFE(blake3.hash(valueSignature))
 }
 
-function validateSignature(data, hmacKey) {
+function validateSignature(data, backlinks, hmacKey) {
   const [valueSignature] = data[0]
   const [encodedValue, signatures] = data[1]
   const [authorBFE, sequence, timestamp, backlink] = data[2]
   const key = { public: authorBFE.slice(2), curve: 'ed25519' }
 
+  if (backlinks) {
+    const backlinksBuffer = Buffer.concat(backlinks)
+    if (!ssbKeys.verify(key, signatures[sequence-backlinks.length], hmacKey, backlinksBuffer)) {
+      console.log("bulk signature does not match", sequence)
+      return 'Bulk signature does not match'
+    }
+  }
+
   if (!ssbKeys.verify(key, signatures[sequence], hmacKey, encodedValue)) {
     console.log("signature does not match")
-    return 'Signature does not match hash of encoded value'
+    return 'Signature does not match encoded value'
   }
 }
 
 function validateSingle(data, previousData, previousKeyBFE, hmacKey) {
   const msgKeyBFEorErr = validateBase(data, previousData, previousKeyBFE)
-  // FIXME: error handling
-  const err = validateSignature(data, hmacKey)
+  if (typeof msgKeyBFEorErr === 'string') return msgKeyBFEorErr
+
+  const err = validateSignature(data, null, hmacKey)
   if (err) return err
   else return msgKeyBFEorErr
 }
 
-function validateBatch(batch, previousData, previousKeyBFE) {
+function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
   const keys = []
-  for (data of batch) {
-    // FIXME: update previous
-    keys.push(validateBase(data, previousData, previousKeyBFE))
-    // FIXME: error handling
-    // FIXME: figure out if we can use batch signatures
-    validateSignature(data)
+  for (let i = 0; i < batch.length; ++i) {
+    const data = batch[i]
+    const msgKeyBFEorErr = validateBase(data, previousData, previousKeyBFE)
+    if (typeof msgKeyBFEorErr === 'string') return msgKeyBFEorErr
+    previousData = data
+    previousKeyBFE = msgKeyBFEorErr
+
+    keys.push(msgKeyBFEorErr)
+  }
+
+  for (let i = batch.length - 1; i >= 0; --i) {
+    const data = batch[i]
+    const [encodedValue, signatures] = data[1]
+    const signatureKeys = Object.keys(signatures)
+    if (signatureKeys.length > 1) {
+      const batchSize = signatureKeys[1] - signatureKeys[0]
+      if (i - batchSize >= 0) {
+        const err = validateSignature(data, keys.slice(i - batchSize, i), hmacKey)
+        if (err) return err
+
+        i -= batchSize - 1
+
+        continue
+      }
+    }
+
+    const err = validateSignature(data, null, hmacKey)
+    if (err) return err
   }
   return keys
 }

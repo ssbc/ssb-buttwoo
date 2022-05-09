@@ -3,6 +3,8 @@ const ssbKeys = require('ssb-keys')
 const bipf = require('bipf')
 const butt2 = require('../')
 
+const BFE_NIL = Buffer.from([6,2])
+
 tape('encode/decode works', function (t) {
   const hmacKey = null
   const tag = butt2.tags.SSB_FEED
@@ -14,10 +16,9 @@ tape('encode/decode works', function (t) {
     id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
   }
   const content = { type: 'post', text: 'Hello world!' }
-  const backlinksBFE = Buffer.from([6,2]) //  null
   const timestamp = 1652037377204
 
-  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, tag, hmacKey)
+  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, BFE_NIL, timestamp, tag, null, hmacKey)
 
   const data = butt2.extractData(butt2Msg)
   const msg = butt2.butt2ToBipf(data, msgKeyBFE)
@@ -38,9 +39,8 @@ tape('encode/decode works', function (t) {
   t.deepEqual(reconstructedButt2msg, butt2Msg, 'can reconstruct')
 
   const content2 = { type: 'post', text: 'Hello butty world!' }
-  const timestamp2 = 1652037377205
 
-  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE, timestamp2, tag, hmacKey)
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE, timestamp+1, tag, null, hmacKey)
 
   const data2 = butt2.extractData(butt2Msg2)
   const msg2 = butt2.butt2ToBipf(data2, msgKeyBFE2)
@@ -71,10 +71,9 @@ tape('validate', function (t) {
     id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
   }
   const content = { type: 'post', text: 'Hello world!' }
-  const backlinksBFE = Buffer.from([6,2]) //  null
   const timestamp = 1652037377204
 
-  const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, butt2.tags.SSB_FEED, hmacKey)
+  const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, BFE_NIL, timestamp, butt2.tags.SSB_FEED, null, hmacKey)
 
   const data = butt2.extractData(butt2Msg1)
   const msgKeyBFEValidate1 = butt2.validateSingle(data, null, null, null)
@@ -82,9 +81,8 @@ tape('validate', function (t) {
   t.deepEqual(msgKeyBFE1, msgKeyBFEValidate1, 'validate no err, generates correct key')
 
   const content2 = { type: 'post', text: 'Hello butty world!' }
-  const timestamp2 = 1652037377205
 
-  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp2, butt2.tags.END_OF_FEED, hmacKey)
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp+1, butt2.tags.END_OF_FEED, null, hmacKey)
 
   const data2 = butt2.extractData(butt2Msg2)
   const msgKeyBFEValidate2 = butt2.validateSingle(data2, data, msgKeyBFEValidate1, null)
@@ -92,13 +90,76 @@ tape('validate', function (t) {
   t.deepEqual(msgKeyBFE2, msgKeyBFEValidate2, 'validate no err, generates correct key')
 
   const content3 = { type: 'post', text: 'Sneaky world!' }
-  const timestamp3 = 1652037377206
 
-  const [msgKeyBFE3, butt2Msg3] = butt2.encodeNew(content3, keys, 3, msgKeyBFE2, timestamp3, butt2.tags.SSB_FEED, hmacKey)
+  const [msgKeyBFE3, butt2Msg3] = butt2.encodeNew(content3, keys, 3, msgKeyBFE2, timestamp+2, butt2.tags.SSB_FEED, null, hmacKey)
   const data3 = butt2.extractData(butt2Msg3)
   const err = butt2.validateSingle(data3, data2, msgKeyBFEValidate2, null)
 
   t.deepEqual('Feed already terminated', err, 'Unable to extend terminated feed')
+  t.end()
+})
+
+tape('validate many', function (t) {
+  const hmacKey = null
+
+  const keys = {
+    curve: 'ed25519',
+    public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
+    private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
+    id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
+  }
+
+  const N = 1000
+
+  const content = { type: 'post', text: 'Hello world!' }
+  const backlinksBFE = Buffer.from([6,2]) //  null
+  const timestamp = 1652037377204
+
+  const msgKeys = []
+  const messages = []
+  const datas = []
+
+  for (let i = 0; i < N; ++i) {
+    const backlinkBFE = i === 0 ? BFE_NIL : msgKeys[i-1]
+    let backlinks = null
+
+    if (i !== 0 && i % 25 === 0)
+      backlinks = msgKeys.slice(-25)
+
+    const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, i+1, backlinkBFE, timestamp+i,
+                                                  butt2.tags.SSB_FEED, backlinks, hmacKey)
+
+    const data = butt2.extractData(butt2Msg)
+    datas.push(data)
+
+    msgKeys.push(msgKeyBFE)
+    messages.push(butt2Msg)
+  }
+
+  var isOk = true
+
+  // validate single all, take time
+  const startSingle = new Date()
+  for (let i = 0; i < N; ++i) {
+    const prevData = i === 0 ? null : datas[i-1]
+    const prevMsgKey = i === 0 ? null : msgKeys[i-1]
+
+    const validate = butt2.validateSingle(datas[i], prevData, prevMsgKey, hmacKey)
+    if (typeof validate === 'string') {
+      isOk = false
+      break
+    }
+  }
+  const singleTime = (new Date()) - startSingle
+
+  t.equal(isOk, true, 'validateSingle completes in ' + singleTime + ' ms')
+
+  const startBatch = new Date()
+  const result = butt2.validateBatch(datas, null, null, hmacKey)
+  const batchTime = (new Date()) - startBatch
+
+  t.ok(Array.isArray(result), 'validateBatch completes in ' + batchTime + ' ms')
+  t.ok(batchTime < singleTime, 'batch validation is faster than single validation')
 
   t.end()
 })
