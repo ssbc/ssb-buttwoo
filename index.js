@@ -107,7 +107,7 @@ function butt2ToBipf(data, msgKeyBFE) {
 function ed25519AuthorToButt2BFE(author) {
   return Buffer.concat([
     bfe.toTF('feed', 'butt2-v1'),
-    rawSignature(author)
+    base64ToBuffer(author)
   ])
 }
 
@@ -123,7 +123,7 @@ const tags = {
   END_OF_FEED: Buffer.from([1])
 }
 
-function rawSignature(str) {
+function base64ToBuffer(str) {
   var i = str.indexOf(".")
   return Buffer.from(str.substring(0, i), "base64")
 }
@@ -163,7 +163,6 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
   const contentBipf = bipf.allocAndEncode(content)
   const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
 
-  // FIXME: we need to figure out what we do with the key
   const authorBFE = ed25519AuthorToButt2BFE(keys.public)
 
   const value = [
@@ -182,7 +181,7 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
   const signatures = {}
 
   const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
-  signatures[sequence] = rawSignature(signature)
+  signatures[sequence] = base64ToBuffer(signature)
 
   // encoded for hash
   const valueSignature = bipf.allocAndEncode([encodedValue, signatures])
