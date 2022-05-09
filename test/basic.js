@@ -4,6 +4,9 @@ const bipf = require('bipf')
 const butt2 = require('../')
 
 tape('encode/decode works', function (t) {
+  const hmacKey = null
+  const tag = butt2.tags.SSB_FEED
+
   const keys = {
     curve: 'ed25519',
     public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
@@ -14,7 +17,7 @@ tape('encode/decode works', function (t) {
   const backlinksBFE = Buffer.from([6,2]) //  null
   const timestamp = 1652037377204
 
-  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, null)
+  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, tag, hmacKey)
 
   const data = butt2.extractData(butt2Msg)
   const msg = butt2.butt2ToBipf(data, msgKeyBFE)
@@ -37,7 +40,7 @@ tape('encode/decode works', function (t) {
   const content2 = { type: 'post', text: 'Hello butty world!' }
   const timestamp2 = 1652037377205
 
-  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE, timestamp2, null)
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE, timestamp2, tag, hmacKey)
 
   const data2 = butt2.extractData(butt2Msg2)
   const msg2 = butt2.butt2ToBipf(data2, msgKeyBFE2)
@@ -59,6 +62,8 @@ tape('encode/decode works', function (t) {
 })
 
 tape('validate', function (t) {
+  const hmacKey = null
+
   const keys = {
     curve: 'ed25519',
     public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
@@ -69,7 +74,7 @@ tape('validate', function (t) {
   const backlinksBFE = Buffer.from([6,2]) //  null
   const timestamp = 1652037377204
 
-  const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, null)
+  const [msgKeyBFE1, butt2Msg1] = butt2.encodeNew(content, keys, 1, backlinksBFE, timestamp, butt2.tags.SSB_FEED, hmacKey)
 
   const data = butt2.extractData(butt2Msg1)
   const msgKeyBFEValidate1 = butt2.validateSingle(data, null, null, null)
@@ -79,12 +84,21 @@ tape('validate', function (t) {
   const content2 = { type: 'post', text: 'Hello butty world!' }
   const timestamp2 = 1652037377205
 
-  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp2, null)
+  const [msgKeyBFE2, butt2Msg2] = butt2.encodeNew(content2, keys, 2, msgKeyBFE1, timestamp2, butt2.tags.END_OF_FEED, hmacKey)
 
   const data2 = butt2.extractData(butt2Msg2)
   const msgKeyBFEValidate2 = butt2.validateSingle(data2, data, msgKeyBFEValidate1, null)
 
   t.deepEqual(msgKeyBFE2, msgKeyBFEValidate2, 'validate no err, generates correct key')
+
+  const content3 = { type: 'post', text: 'Sneaky world!' }
+  const timestamp3 = 1652037377206
+
+  const [msgKeyBFE3, butt2Msg3] = butt2.encodeNew(content3, keys, 3, msgKeyBFE2, timestamp3, butt2.tags.SSB_FEED, hmacKey)
+  const data3 = butt2.extractData(butt2Msg3)
+  const err = butt2.validateSingle(data3, data2, msgKeyBFEValidate2, null)
+
+  t.deepEqual('Feed already terminated', err, 'Unable to extend terminated feed')
 
   t.end()
 })

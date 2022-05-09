@@ -156,9 +156,8 @@ function msgValToButt2(msgVal) {
 }
 
 // FIXME: boxer
-// FIXME: end-of-feed?
 // FIXME: backlinks if needed for signature
-function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
+function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, hmacKey) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(content)
   const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
@@ -170,7 +169,7 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, hmacKey) {
     sequence,
     parseInt(timestamp),
     backlinkBFE,
-    tags.SSB_FEED,
+    tag,
     contentBipf.length,
     contentHash
   ]
@@ -283,6 +282,7 @@ module.exports = {
   //bipfToButt2, // we need this, a lot more efficient
 
   encodeNew, // local -> db
+  tags,
 
   validateSingle,
   validateBatch,
