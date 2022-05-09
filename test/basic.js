@@ -31,6 +31,9 @@ tape('encode/decode works', function (t) {
   t.deepEqual(jsonMsg.value.previous, null, 'correct previous')
   t.deepEqual(jsonMsg.value.content, content, 'content is the same')
 
+  const reconstructedButt2msg = butt2.msgValToButt2(jsonMsg.value)
+  t.deepEqual(reconstructedButt2msg, butt2Msg, 'can reconstruct')
+
   const content2 = { type: 'post', text: 'Hello butty world!' }
   const timestamp2 = 1652037377205
 
@@ -48,6 +51,9 @@ tape('encode/decode works', function (t) {
   t.deepEqual(jsonMsg2.value.sequence, 2, 'correct sequence')
   t.deepEqual(jsonMsg2.value.previous, msgKey, 'correct previous')
   t.deepEqual(jsonMsg2.value.content, content2, 'content is the same')
+
+  const reconstructedButt2msg2 = butt2.msgValToButt2(jsonMsg2.value)
+  t.deepEqual(reconstructedButt2msg2, butt2Msg2, 'can reconstruct')
 
   t.end()
 })
