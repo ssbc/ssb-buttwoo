@@ -131,6 +131,7 @@ function base64ToBuffer(str) {
 function msgValToButt2(msgVal) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(msgVal.content)
+  // FIXME: this is wrong, should not be encoded as message
   const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
 
   const backlinkBFE = bfe.encode(msgVal.previous)
@@ -156,7 +157,8 @@ function msgValToButt2(msgVal) {
 }
 
 // FIXME: boxer
-function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, backlinks, hmacKey) {
+function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
+                   backlinks, hmacKey) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(content)
   const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
@@ -179,6 +181,7 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag, backlin
   const signatures = {}
 
   const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
+  // FIXME: probably encode this using BFE (signature formats)
   signatures[sequence] = base64ToBuffer(signature)
 
   if (backlinks) {
