@@ -35,7 +35,7 @@ function varintLength(len) {
 }
 
 function butt2ToBipf(data, msgKeyBFE) {
-  const [valueSignature, contentBipf] = data[0]
+  const [butt2, contentBipf] = data[0]
   const [encodedValue, signatures] = data[1]
   const [authorBFE, sequence, timestamp, backlinkBFE, tag] = data[2]
 
@@ -151,9 +151,9 @@ function msgValToButt2(msgVal) {
   const encodedValue = bipf.allocAndEncode(value)
 
   // encoded for hash
-  const valueSignature = bipf.allocAndEncode([encodedValue, msgVal.signatures])
+  const butt2 = bipf.allocAndEncode([encodedValue, msgVal.signatures])
 
-  return bipf.allocAndEncode([valueSignature, contentBipf])
+  return bipf.allocAndEncode([butt2, contentBipf])
 }
 
 // FIXME: boxer
@@ -191,17 +191,17 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
   }
 
   // encoded for hash
-  const valueSignature = bipf.allocAndEncode([encodedValue, signatures])
-  const msgKeyBFE = encodeMsgIdToBFE(blake3.hash(valueSignature))
+  const butt2 = bipf.allocAndEncode([encodedValue, signatures])
+  const msgKeyBFE = encodeMsgIdToBFE(blake3.hash(butt2))
 
   return [
     msgKeyBFE,
-    bipf.allocAndEncode([valueSignature, contentBipf])
+    bipf.allocAndEncode([butt2, contentBipf])
   ]
 }
 
 function validateBase(data, previousData, previousKeyBFE) {
-  const [valueSignature, contentBipf] = data[0]
+  const [butt2, contentBipf] = data[0]
   const [encodedValue, signatures] = data[1]
   const [authorBFE, sequence, timestamp, backlinkBFE, tag,
          contentSize, contentHash] = data[2]
@@ -220,7 +220,7 @@ function validateBase(data, previousData, previousKeyBFE) {
   // FIXME: check length of content
 
   if (previousData !== null) {
-    const [valueSignature] = previousData[0]
+    const [butt2] = previousData[0]
     const [encodedValuePrev] = previousData[1]
     const [authorBFEPrev, sequencePrev, timestampPrev,
            backlinkBFEPrev, tagPrev] = previousData[2]
@@ -249,7 +249,7 @@ function validateBase(data, previousData, previousKeyBFE) {
 }
 
 function validateSignature(data, backlinks, hmacKey) {
-  const [valueSignature] = data[0]
+  const [butt2] = data[0]
   const [encodedValue, signatures] = data[1]
   const [authorBFE, sequence, timestamp, backlink] = data[2]
   const key = { public: authorBFE.slice(2), curve: 'ed25519' }
@@ -308,8 +308,8 @@ function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
 }
 
 function hash(data) {
-  const [valueSignature] = data[0]
-  return encodeMsgIdToBFE(blake3.hash(valueSignature))
+  const [butt2] = data[0]
+  return encodeMsgIdToBFE(blake3.hash(butt2))
 }
 
 module.exports = {
