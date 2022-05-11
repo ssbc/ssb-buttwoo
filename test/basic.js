@@ -27,7 +27,7 @@ tape('encode/decode works', function (t) {
   
   //console.log(jsonMsg)
 
-  const msgKey = 'ssb:message/butt2-v1/VMODw5p12julGn7LpQ35wv6Q2mGwJsZT9EvI9eBs7Fw='
+  const msgKey = 'ssb:message/butt2-v1/rHlNsKxZmZ4GdHSWXnVIQrIgviOZ0iqireqFYKici98='
 
   t.deepEqual(jsonMsg.key, msgKey, 'key is correct')
   t.deepEqual(jsonMsg.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
@@ -49,7 +49,7 @@ tape('encode/decode works', function (t) {
 
   //console.log(jsonMsg2)
 
-  t.deepEqual(jsonMsg2.key, 'ssb:message/butt2-v1/hJr3YokCl-uHcGsdUIBVSlDZlMCnlvQDObzuUoDwFhA=', 'key is correct')
+  t.deepEqual(jsonMsg2.key, 'ssb:message/butt2-v1/8KlgjEXXcR88JbJ3z2k9Vh9O4BRxG2Gsmiu5jDbjES0=', 'key is correct')
   t.deepEqual(jsonMsg2.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
   t.deepEqual(jsonMsg2.value.sequence, 2, 'correct sequence')
   t.deepEqual(jsonMsg2.value.previous, msgKey, 'correct previous')

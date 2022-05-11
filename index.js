@@ -104,21 +104,27 @@ function butt2ToBipf(data, msgKeyBFE) {
   return kvtBuffer
 }
 
-function ed25519AuthorToButt2BFE(author) {
+function authorToBFE(author) {
   return Buffer.concat([
     bfe.toTF('feed', 'butt2-v1'),
     base64ToBuffer(author)
   ])
 }
 
-function encodeMsgIdToBFE(buffer) {
+function msgIdToBFE(buffer) {
   return Buffer.concat([
     bfe.toTF('message', 'butt2-v1'),
     buffer
   ])
 }
 
-function signatureToButt2BFE(signature) {
+function hashToBFE(buffer) {
+  return Buffer.concat([
+    bfe.toTF('blob', 'butt2-v1'),
+    buffer
+  ])
+}
+function signatureToBFE(signature) {
   return Buffer.concat([
     bfe.toTF('signature', 'butt2-v1'),
     base64ToBuffer(signature)
@@ -138,8 +144,7 @@ function base64ToBuffer(str) {
 function msgValToButt2(msgVal) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(msgVal.content)
-  // FIXME: this is wrong, should not be encoded as message
-  const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
+  const contentHash = hashToBFE(blake3.hash(contentBipf))
 
   const backlinkBFE = bfe.encode(msgVal.previous)
   const authorBFE = bfe.encode(msgVal.author)
@@ -168,9 +173,9 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
                    backlinks, hmacKey) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(content)
-  const contentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
+  const contentHash = hashToBFE(blake3.hash(contentBipf))
 
-  const authorBFE = ed25519AuthorToButt2BFE(keys.public)
+  const authorBFE = authorToBFE(keys.public)
 
   const value = [
     authorBFE,
@@ -188,17 +193,17 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
   const signatures = {}
 
   const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
-  signatures[sequence] = signatureToButt2BFE(signature)
+  signatures[sequence] = signatureToBFE(signature)
 
   if (backlinks) {
     const backlinksBuffer = Buffer.concat(backlinks)
     const backlinksSignature = ssbKeys.sign(keys, hmacKey, backlinksBuffer)
-    signatures[sequence-backlinks.length] = signatureToButt2BFE(backlinksSignature)
+    signatures[sequence-backlinks.length] = signatureToBFE(backlinksSignature)
   }
 
   // encoded for hash
   const butt2 = bipf.allocAndEncode([encodedValue, signatures])
-  const msgKeyBFE = encodeMsgIdToBFE(blake3.hash(butt2))
+  const msgKeyBFE = msgIdToBFE(blake3.hash(butt2))
 
   return [
     msgKeyBFE,
@@ -215,7 +220,7 @@ function validateBase(data, previousData, previousKeyBFE) {
   if (contentBipf.length !== contentSize)
     return new Error('Content size does not match content')
 
-  const testedContentHash = encodeMsgIdToBFE(blake3.hash(contentBipf))
+  const testedContentHash = hashToBFE(blake3.hash(contentBipf))
   if (Buffer.compare(testedContentHash, contentHash) !== 0)
     return new Error('Content hash does not match content')
 
@@ -318,7 +323,7 @@ function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
 
 function hash(data) {
   const [butt2] = data[0]
-  return encodeMsgIdToBFE(blake3.hash(butt2))
+  return msgIdToBFE(blake3.hash(butt2))
 }
 
 module.exports = {
