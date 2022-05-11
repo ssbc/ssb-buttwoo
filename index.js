@@ -118,6 +118,13 @@ function encodeMsgIdToBFE(buffer) {
   ])
 }
 
+function signatureToButt2BFE(signature) {
+  return Buffer.concat([
+    bfe.toTF('signature', 'butt2-v1'),
+    base64ToBuffer(signature)
+  ])
+}
+
 const tags = {
   SSB_FEED: Buffer.from([0]),
   END_OF_FEED: Buffer.from([1])
@@ -181,13 +188,12 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
   const signatures = {}
 
   const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
-  // FIXME: probably encode this using BFE (signature formats)
-  signatures[sequence] = base64ToBuffer(signature)
+  signatures[sequence] = signatureToButt2BFE(signature)
 
   if (backlinks) {
     const backlinksBuffer = Buffer.concat(backlinks)
     const backlinksSignature = ssbKeys.sign(keys, hmacKey, backlinksBuffer)
-    signatures[sequence-backlinks.length] = base64ToBuffer(backlinksSignature)
+    signatures[sequence-backlinks.length] = signatureToButt2BFE(backlinksSignature)
   }
 
   // encoded for hash
@@ -256,11 +262,14 @@ function validateSignature(data, backlinks, hmacKey) {
 
   if (backlinks) {
     const backlinksBuffer = Buffer.concat(backlinks)
-    if (!ssbKeys.verify(key, signatures[sequence-backlinks.length], hmacKey, backlinksBuffer))
+    const bulkSignature = signatures[sequence-backlinks.length]
+
+    if (!ssbKeys.verify(key, bulkSignature.slice(2), hmacKey, backlinksBuffer))
       return new Error('Bulk signature does not match')
   }
 
-  if (!ssbKeys.verify(key, signatures[sequence], hmacKey, encodedValue))
+  const signature = signatures[sequence]
+  if (!ssbKeys.verify(key, signature.slice(2), hmacKey, encodedValue))
     return new Error('Signature does not match encoded value')
 }
 
