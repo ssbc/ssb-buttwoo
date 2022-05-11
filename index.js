@@ -5,14 +5,14 @@ const ssbKeys = require('ssb-keys')
 const varint = require('varint')
 
 function extractData(b) {
-  const [valueSignature, contentBipf] = bipf.decode(b, 0)
-  const [encodedValue, signatures] = bipf.decode(valueSignature, 0)
+  const [butt2, contentBipf] = bipf.decode(b, 0)
+  const [encodedValue, signatures] = bipf.decode(butt2, 0)
   const [authorBFE, sequence, timestamp, backlinkBFE, tag,
          contentSize, contentHash] = bipf.decode(encodedValue, 0)
 
   // 3 layers
   return [
-    [valueSignature, contentBipf],
+    [butt2, contentBipf],
     [encodedValue, signatures],
     [authorBFE, sequence, timestamp, backlinkBFE, tag, contentSize, contentHash]
   ]
