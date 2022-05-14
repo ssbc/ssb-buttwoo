@@ -5,24 +5,22 @@ const ssbKeys = require('ssb-keys')
 const varint = require('varint')
 
 function extractData(b) {
-  const [butt2, contentBipf] = bipf.decode(b, 0)
-  const [encodedValue, signatures] = bipf.decode(butt2, 0)
-  const [authorBFE, sequence, timestamp, backlinkBFE, tag,
+  const [encodedValue, signature, contentBipf] = bipf.decode(b, 0)
+  const [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag,
          contentSize, contentHash] = bipf.decode(encodedValue, 0)
 
-  // 3 layers
   return [
-    [butt2, contentBipf],
-    [encodedValue, signatures],
-    [authorBFE, sequence, timestamp, backlinkBFE, tag, contentSize, contentHash]
+    [encodedValue, signature, contentBipf],
+    [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag, contentSize, contentHash]
   ]
 }
 
 const authorLength = bipf.encodingLength('author')
+const parentLength = bipf.encodingLength('parent')
 const sequenceLength = bipf.encodingLength('sequence')
 const timestampLength = bipf.encodingLength('timestamp')
 const previousLength = bipf.encodingLength('previous')
-const signaturesLength = bipf.encodingLength('signatures')
+const signatureLength = bipf.encodingLength('signature')
 const tagLength = bipf.encodingLength('tag')
 const contentLength = bipf.encodingLength('content')
 const keyLength = bipf.encodingLength('key')
@@ -35,26 +33,30 @@ function varintLength(len) {
 }
 
 function butt2ToBipf(data, msgKeyBFE) {
-  const [butt2, contentBipf] = data[0]
-  const [encodedValue, signatures] = data[1]
-  const [authorBFE, sequence, timestamp, backlinkBFE, tag] = data[2]
+  const [butt2, signature, contentBipf] = data[0]
+  const [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag] = data[1]
 
   const author = bfe.decode(authorBFE)
-  const backlink = bfe.decode(backlinkBFE)
+  const parent = bfe.decode(parentBFE)
+  const previous = bfe.decode(previousBFE)
   const msgKey = bfe.decode(msgKeyBFE)
+
+  // FIXME: encode signature?
 
   let valueObjSize = authorLength
   valueObjSize += bipf.encodingLength(author)
+  valueObjSize += parentLength
+  valueObjSize += bipf.encodingLength(parent)
   valueObjSize += sequenceLength
   valueObjSize += bipf.encodingLength(sequence)
   valueObjSize += timestampLength
   valueObjSize += bipf.encodingLength(timestamp)
   valueObjSize += previousLength
-  valueObjSize += bipf.encodingLength(backlink)
+  valueObjSize += bipf.encodingLength(previous)
   valueObjSize += contentLength
   valueObjSize += contentBipf.length
-  valueObjSize += signaturesLength
-  valueObjSize += bipf.encodingLength(signatures)
+  valueObjSize += signatureLength
+  valueObjSize += bipf.encodingLength(signature)
   valueObjSize += tagLength
   valueObjSize += bipf.encodingLength(tag)
   
@@ -86,17 +88,19 @@ function butt2ToBipf(data, msgKeyBFE) {
   // write V
   p += bipf.encode('author', kvtBuffer, p)
   p += bipf.encode(author, kvtBuffer, p)
+  p += bipf.encode('parent', kvtBuffer, p)
+  p += bipf.encode(parent, kvtBuffer, p)
   p += bipf.encode('sequence', kvtBuffer, p)
   p += bipf.encode(sequence, kvtBuffer, p)
   p += bipf.encode('timestamp', kvtBuffer, p)
   p += bipf.encode(timestamp, kvtBuffer, p)
   p += bipf.encode('previous', kvtBuffer, p)
-  p += bipf.encode(backlink, kvtBuffer, p)
+  p += bipf.encode(previous, kvtBuffer, p)
   p += bipf.encode('content', kvtBuffer, p)
   contentBipf.copy(kvtBuffer, p, 0, contentBipf.length)
   p += contentBipf.length
-  p += bipf.encode('signatures', kvtBuffer, p)
-  p += bipf.encode(signatures, kvtBuffer, p)
+  p += bipf.encode('signature', kvtBuffer, p)
+  p += bipf.encode(signature, kvtBuffer, p)
   p += bipf.encode('tag', kvtBuffer, p)
   p += bipf.encode(tag, kvtBuffer, p)
   
@@ -133,7 +137,8 @@ function signatureToBFE(signature) {
 
 const tags = {
   SSB_FEED: Buffer.from([0]),
-  END_OF_FEED: Buffer.from([1])
+  SUB_FEED: Buffer.from([1]),
+  END_OF_FEED: Buffer.from([2])
 }
 
 function base64ToBuffer(str) {
@@ -146,14 +151,17 @@ function msgValToButt2(msgVal) {
   const contentBipf = bipf.allocAndEncode(msgVal.content)
   const contentHash = hashToBFE(blake3.hash(contentBipf))
 
-  const backlinkBFE = bfe.encode(msgVal.previous)
   const authorBFE = bfe.encode(msgVal.author)
+  const parentBFE = bfe.encode(msgVal.parent)
+  const previousBFE = bfe.encode(msgVal.previous)
+  // FIXME: decode signature?
 
   const value = [
     authorBFE,
+    parentBFE,
     msgVal.sequence,
     parseInt(msgVal.timestamp),
-    backlinkBFE,
+    previousBFE,
     msgVal.tag,
     contentBipf.length,
     contentHash
@@ -162,15 +170,14 @@ function msgValToButt2(msgVal) {
   // encoded for signatures
   const encodedValue = bipf.allocAndEncode(value)
 
-  // encoded for hash
-  const butt2 = bipf.allocAndEncode([encodedValue, msgVal.signatures])
-
-  return bipf.allocAndEncode([butt2, contentBipf])
+  return bipf.allocAndEncode([encodedValue, msgVal.signature, contentBipf])
 }
 
+const BFE_NIL = Buffer.from([6,2])
+
 // FIXME: boxer
-function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
-                   backlinks, hmacKey) {
+function encodeNew(content, keys, parentBFE, sequence, previousBFE, timestamp,
+                   tag, hmacKey) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(content)
   const contentHash = hashToBFE(blake3.hash(contentBipf))
@@ -179,43 +186,30 @@ function encodeNew(content, keys, sequence, backlinkBFE, timestamp, tag,
 
   const value = [
     authorBFE,
+    parentBFE === null ? BFE_NIL : parentBFE,
     sequence,
     parseInt(timestamp),
-    backlinkBFE,
+    previousBFE === null ? BFE_NIL : previousBFE,
     tag,
     contentBipf.length,
     contentHash
   ]
 
-  // encoded for signatures
   const encodedValue = bipf.allocAndEncode(value)
+  const signature = signatureToBFE(ssbKeys.sign(keys, hmacKey, encodedValue))
 
-  const signatures = {}
-
-  const signature = ssbKeys.sign(keys, hmacKey, encodedValue)
-  signatures[sequence] = signatureToBFE(signature)
-
-  if (backlinks) {
-    const backlinksBuffer = Buffer.concat(backlinks)
-    const backlinksSignature = ssbKeys.sign(keys, hmacKey, backlinksBuffer)
-    signatures[sequence-backlinks.length] = signatureToBFE(backlinksSignature)
-  }
-
-  // encoded for hash
-  const butt2 = bipf.allocAndEncode([encodedValue, signatures])
-  const msgKeyBFE = msgIdToBFE(blake3.hash(butt2))
+  const msgKeyBFE = msgIdToBFE(blake3.hash(Buffer.concat([encodedValue, signature])))
 
   return [
     msgKeyBFE,
-    bipf.allocAndEncode([butt2, contentBipf])
+    bipf.allocAndEncode([encodedValue, signature, contentBipf])
   ]
 }
 
 function validateBase(data, previousData, previousKeyBFE) {
-  const [butt2, contentBipf] = data[0]
-  const [encodedValue, signatures] = data[1]
-  const [authorBFE, sequence, timestamp, backlinkBFE, tag,
-         contentSize, contentHash] = data[2]
+  const [encodedValue, signature, contentBipf] = data[0]
+  const [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag,
+         contentSize, contentHash] = data[1]
 
   if (contentBipf.length !== contentSize)
     return new Error('Content size does not match content')
@@ -231,13 +225,15 @@ function validateBase(data, previousData, previousKeyBFE) {
   // FIXME: check length of content
 
   if (previousData !== null) {
-    const [butt2] = previousData[0]
-    const [encodedValuePrev] = previousData[1]
-    const [authorBFEPrev, sequencePrev, timestampPrev,
-           backlinkBFEPrev, tagPrev] = previousData[2]
+    const [encodedValuePrev, signaturePrev] = previousData[0]
+    const [authorBFEPrev, parentBFEPrev, sequencePrev, timestampPrev,
+           previousBFEPrev, tagPrev] = previousData[1]
 
     if (Buffer.compare(authorBFE, authorBFEPrev) !== 0)
       return new Error('Author does not match previous message')
+
+    if (Buffer.compare(parentBFE, parentBFEPrev) !== 0)
+      return new Error('Parent does not match previous message')
 
     if (sequence !== sequencePrev + 1)
       return new Error('Sequence must increase')
@@ -245,8 +241,8 @@ function validateBase(data, previousData, previousKeyBFE) {
     if (timestamp <= timestampPrev)
       return new Error('Timestamp must increase')
 
-    if (Buffer.compare(backlinkBFE, previousKeyBFE) !== 0)
-      return new Error('Backlink does not match key of previous message')
+    if (Buffer.compare(previousBFE, previousKeyBFE) !== 0)
+      return new Error('Previous does not match key of previous message')
 
     if (Buffer.compare(tagPrev, tags.END_OF_FEED) === 0)
       return new Error('Feed already terminated')
@@ -254,26 +250,16 @@ function validateBase(data, previousData, previousKeyBFE) {
     if (sequence !== 1)
       return new Error('Sequence must be 1 for first message')
 
-    if (Buffer.compare(backlinkBFE, Buffer.from([6,2])) !== 0)
-      return new Error('Backlink must be nil for first message')
+    if (Buffer.compare(previousBFE, Buffer.from([6,2])) !== 0)
+      return new Error('Previous must be nil for first message')
   }
 }
 
-function validateSignature(data, backlinks, hmacKey) {
-  const [butt2] = data[0]
-  const [encodedValue, signatures] = data[1]
-  const [authorBFE, sequence, timestamp, backlink] = data[2]
+function validateSignature(data, hmacKey) {
+  const [encodedValue, signature] = data[0]
+  const [authorBFE] = data[1]
   const key = { public: authorBFE.slice(2), curve: 'ed25519' }
 
-  if (backlinks) {
-    const backlinksBuffer = Buffer.concat(backlinks)
-    const bulkSignature = signatures[sequence-backlinks.length]
-
-    if (!ssbKeys.verify(key, bulkSignature.slice(2), hmacKey, backlinksBuffer))
-      return new Error('Bulk signature does not match')
-  }
-
-  const signature = signatures[sequence]
   if (!ssbKeys.verify(key, signature.slice(2), hmacKey, encodedValue))
     return new Error('Signature does not match encoded value')
 }
@@ -299,31 +285,17 @@ function validateBatch(batch, previousData, previousKeyBFE, hmacKey) {
     keys.push(previousKeyBFE)
   }
 
-  for (let i = batch.length - 1; i >= 0; --i) {
-    const data = batch[i]
-    const [encodedValue, signatures] = data[1]
-    const signatureKeys = Object.keys(signatures)
-    if (signatureKeys.length > 1) {
-      const batchSize = signatureKeys[1] - signatureKeys[0]
-      if (i - batchSize >= 0) {
-        const err = validateSignature(data, keys.slice(i - batchSize, i), hmacKey)
-        if (err) return err
+  // FIXME: maybe some random element?
+  const data = batch[batch.length - 1]
+  const err = validateSignature(data, hmacKey)
+  if (err) return err
 
-        i -= batchSize - 1
-
-        continue
-      }
-    }
-
-    const err = validateSignature(data, null, hmacKey)
-    if (err) return err
-  }
   return keys
 }
 
 function hash(data) {
-  const [butt2] = data[0]
-  return msgIdToBFE(blake3.hash(butt2))
+  const [encodedValue, signature] = data[0]
+  return msgIdToBFE(blake3.hash(Buffer.concat([encodedValue, signature])))
 }
 
 module.exports = {
