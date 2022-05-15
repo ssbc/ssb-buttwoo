@@ -1,20 +1,27 @@
 const tape = require('tape')
 const ssbKeys = require('ssb-keys')
 const bipf = require('bipf')
+const bfe = require('ssb-bfe')
 const butt2 = require('../')
 
 const BFE_NIL = Buffer.from([6,2])
+
+const keys = {
+  curve: 'ed25519',
+  public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
+  private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
+  id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
+}
+
+const authorBFE = Buffer.concat([
+  bfe.toTF('feed', 'butt2-v1'),
+  Buffer.from(keys.public.substring(0, keys.public.indexOf('.')), "base64")
+])
 
 tape('encode/decode works', function (t) {
   const hmacKey = null
   const tag = butt2.tags.SSB_FEED
 
-  const keys = {
-    curve: 'ed25519',
-    public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
-    private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
-    id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
-  }
   const content = { type: 'post', text: 'Hello world!' }
   const timestamp = 1652037377204
 
@@ -63,15 +70,27 @@ tape('encode/decode works', function (t) {
   t.end()
 })
 
+tape('extract author + sequence', function (t) {
+  const hmacKey = null
+
+  const content = { type: 'post', text: 'Hello world!' }
+  const timestamp = 1652037377204
+
+  const [msgKeyBFE, butt2Msg] = butt2.encodeNew(content, keys, null, 1, null, timestamp,
+                                                butt2.tags.SSB_FEED, hmacKey)
+
+  const author = butt2.extractAuthor(butt2Msg)
+  t.deepEqual(author, authorBFE, 'extracting author works')
+
+  const sequence = butt2.extractSequence(butt2Msg)
+  t.deepEqual(sequence, 1, 'extracting sequence works')
+
+  t.end()
+})
+
 tape('validate', function (t) {
   const hmacKey = null
 
-  const keys = {
-    curve: 'ed25519',
-    public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
-    private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
-    id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
-  }
   const content = { type: 'post', text: 'Hello world!' }
   const timestamp = 1652037377204
 
@@ -110,13 +129,6 @@ tape('validate', function (t) {
 
 tape('validate many', function (t) {
   const hmacKey = null
-
-  const keys = {
-    curve: 'ed25519',
-    public: 'TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519',
-    private: 'waCfThHBkSmFfzZANABv/O9DYtcxUuHc/zoWoseXcidMF4uwubeLO3JirtWCNVmfxGbB7jeYRc92iXAqNvZ4Uw==.ed25519',
-    id: '@TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=.ed25519'
-  }
 
   const N = 1000
 

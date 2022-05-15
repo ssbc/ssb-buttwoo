@@ -27,6 +27,7 @@ const keyLength = bipf.encodingLength('key')
 const valueLength = bipf.encodingLength('value')
 
 const TAG_SIZE = 3
+const TAG_MASK = 7
 
 function varintLength(len) {
   return varint.encodingLength(len << TAG_SIZE) + len
@@ -298,12 +299,63 @@ function hash(data) {
   return msgIdToBFE(blake3.hash(Buffer.concat([encodedValue, signature])))
 }
 
+const ARRAY = 4 // 100
+const BUFFER = 1 // 001
+
+function extractValueElement(buffer, valueIndex) {
+  let p = 0
+
+  let tag = varint.decode(buffer, p)
+  let len = tag >> TAG_SIZE
+  let type = tag & TAG_MASK
+
+  if (type !== ARRAY) return
+
+  p += varint.decode.bytes
+
+  // encoded value is encoded as a buffer
+  tag = varint.decode(buffer, p)
+  len = tag >> TAG_SIZE
+  type = tag & TAG_MASK
+
+  if (type !== BUFFER) return
+
+  p += varint.decode.bytes
+
+  tag = varint.decode(buffer, p)
+  len = tag >> TAG_SIZE
+  type = tag & TAG_MASK
+
+  if (type !== ARRAY) return
+
+  let i = 0
+  for (var c = varint.decode.bytes; c < len; i++) {
+    if (i === valueIndex)
+      return bipf.decode(buffer, p + c)
+
+    const arrayTag = varint.decode(buffer, p + c)
+    c += varint.decode.bytes + (arrayTag >> TAG_SIZE)
+  }
+}
+
+function extractAuthor(buffer) {
+  return extractValueElement(buffer, 0)
+}
+
+function extractSequence(buffer) {
+  return extractValueElement(buffer, 2)
+}
+
 module.exports = {
   extractData,
 
   butt2ToBipf, // network -> db
   msgValToButt2, // db -> network
   //bipfToButt2, // we need this, a lot more efficient
+
+  // ebt helpers
+  extractAuthor,
+  extractSequence,
 
   encodeNew, // local -> db
   tags,
