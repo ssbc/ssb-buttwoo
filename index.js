@@ -342,6 +342,10 @@ function extractAuthor(buffer) {
   return extractValueElement(buffer, 0)
 }
 
+function extractParent(buffer) {
+  return extractValueElement(buffer, 1)
+}
+
 function extractSequence(buffer) {
   return extractValueElement(buffer, 2)
 }
@@ -353,10 +357,12 @@ module.exports = {
   msgValToButt2, // db -> network
   //bipfToButt2, // we need this, a lot more efficient
 
-  // ebt helpers
+  // ebt+db2 helpers
   extractAuthor,
+  extractParent,
   extractSequence,
 
+  // FIXME: we might need one that maps well with publish
   encodeNew, // local -> db
   tags,
 

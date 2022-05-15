@@ -82,6 +82,9 @@ tape('extract author + sequence', function (t) {
   const author = butt2.extractAuthor(butt2Msg)
   t.deepEqual(author, authorBFE, 'extracting author works')
 
+  const parent = butt2.extractParent(butt2Msg)
+  t.deepEqual(parent, BFE_NIL, 'extracting parent works')
+
   const sequence = butt2.extractSequence(butt2Msg)
   t.deepEqual(sequence, 1, 'extracting sequence works')
 
