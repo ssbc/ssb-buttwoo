@@ -23,6 +23,7 @@ const previousLength = bipf.encodingLength('previous')
 const signatureLength = bipf.encodingLength('signature')
 const tagLength = bipf.encodingLength('tag')
 const contentLength = bipf.encodingLength('content')
+const contentHashLength = bipf.encodingLength('contentHash')
 const keyLength = bipf.encodingLength('key')
 const valueLength = bipf.encodingLength('value')
 
@@ -35,7 +36,8 @@ function varintLength(len) {
 
 function butt2ToBipf(data, msgKeyBFE) {
   const [butt2, signature, contentBipf] = data[0]
-  const [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag] = data[1]
+  const [authorBFE, parentBFE, sequence, timestamp,
+         previousBFE, tag, contentLen, contentHash] = data[1]
 
   const author = bfe.decode(authorBFE)
   const parent = bfe.decode(parentBFE)
@@ -60,6 +62,8 @@ function butt2ToBipf(data, msgKeyBFE) {
   valueObjSize += bipf.encodingLength(signature)
   valueObjSize += tagLength
   valueObjSize += bipf.encodingLength(tag)
+  valueObjSize += contentHashLength
+  valueObjSize += bipf.encodingLength(contentHash)
   
   let kvtObjSize = keyLength
   kvtObjSize += bipf.encodingLength(msgKey)
@@ -100,6 +104,8 @@ function butt2ToBipf(data, msgKeyBFE) {
   p += bipf.encode('content', kvtBuffer, p)
   contentBipf.copy(kvtBuffer, p, 0, contentBipf.length)
   p += contentBipf.length
+  p += bipf.encode('contentHash', kvtBuffer, p)
+  p += bipf.encode(contentHash, kvtBuffer, p)
   p += bipf.encode('signature', kvtBuffer, p)
   p += bipf.encode(signature, kvtBuffer, p)
   p += bipf.encode('tag', kvtBuffer, p)
@@ -172,6 +178,67 @@ function msgValToButt2(msgVal) {
   const encodedValue = bipf.allocAndEncode(value)
 
   return bipf.allocAndEncode([encodedValue, msgVal.signature, contentBipf])
+}
+
+const BIPF_VALUE = bipf.allocAndEncode('value')
+
+// buffer is kvt
+function bipfToButt2(buffer) {
+  const pValue = bipf.seekKey2(buffer, 0, BIPF_VALUE, 0)
+
+  let authorBFE, parentBFE, sequence, timestamp, previousBFE
+  let tagBuffer, contentBipf, contentHash, signatureBuffer
+
+  const tag = varint.decode(buffer, pValue)
+  const len = tag >> TAG_SIZE
+
+  for (var c = varint.decode.bytes; c < len; ) {
+    const keyStart = pValue + c
+    var keyTag = varint.decode(buffer, keyStart)
+    c += varint.decode.bytes
+    c += keyTag >> TAG_SIZE
+    const valueStart = pValue + c
+    const valueTag = varint.decode(buffer, valueStart)
+    const valueLen = varint.decode.bytes + (valueTag >> TAG_SIZE)
+
+    const key = bipf.decode(buffer, keyStart)
+    if (key === 'author')
+      authorBFE = bfe.encode(bipf.decode(buffer, valueStart))
+    else if (key === 'parent')
+      parentBFE = bfe.encode(bipf.decode(buffer, valueStart))
+    else if (key === 'sequence')
+      sequence = bipf.decode(buffer, valueStart)
+    else if (key === 'timestamp')
+      timestamp = bipf.decode(buffer, valueStart)
+    else if (key === 'previous')
+      previousBFE = bfe.encode(bipf.decode(buffer, valueStart))
+    else if (key === 'tag')
+      tagBuffer = bipf.decode(buffer, valueStart)
+    else if (key === 'content')
+      contentBipf = buffer.slice(valueStart, valueStart + valueLen)
+    else if (key === 'contentHash')
+      contentHash = bipf.decode(buffer, valueStart)
+    else if (key === 'signature')
+      signatureBuffer = bipf.decode(buffer, valueStart)
+
+    c += valueLen
+  }
+
+  const value = [
+    authorBFE,
+    parentBFE,
+    sequence,
+    timestamp,
+    previousBFE,
+    tagBuffer,
+    contentBipf.length,
+    contentHash
+  ]
+
+  // encoded for signatures
+  const encodedValue = bipf.allocAndEncode(value)
+
+  return bipf.allocAndEncode([encodedValue, signatureBuffer, contentBipf])
 }
 
 const BFE_NIL = Buffer.from([6,2])
@@ -354,8 +421,9 @@ module.exports = {
   extractData,
 
   butt2ToBipf, // network -> db
-  msgValToButt2, // db -> network
-  //bipfToButt2, // we need this, a lot more efficient
+  bipfToButt2, // db -> network
+
+  msgValToButt2, // db -> network (slow)
 
   // ebt+db2 helpers
   extractAuthor,
