@@ -1,11 +1,11 @@
-# SSB butt2
+# SSB buttwoo
 
-An implementation of [ssb-butt2-format] in JS.
+An implementation of [ssb-buttwoo-spec] in JS.
 
 Requires a few changes upstream:
- - https://github.com/staltz/ssb-uri2/pull/7
- - https://github.com/ssb-ngi-pointer/ssb-bfe-spec/pull/23
+ - https://github.com/ssbc/ssb-uri2/pull/7
+ - https://github.com/ssbc/ssb-bfe-spec/pull/23
 
 Work in progress!
 
-[ssb-butt2-format]: https://github.com/arj03/ssb-butt2-format
+[ssb-buttwoo-spec]: https://github.com/arj03/ssb-buttwoo-spec
