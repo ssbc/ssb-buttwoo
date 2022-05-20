@@ -11,7 +11,8 @@ function extractData(b) {
 
   return [
     [encodedValue, signature, contentBipf],
-    [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag, contentSize, contentHash]
+    [authorBFE, parentBFE, sequence, timestamp, previousBFE, tag,
+     contentSize, contentHash]
   ]
 }
 
@@ -153,6 +154,7 @@ function base64ToBuffer(str) {
   return Buffer.from(str.substring(0, i), "base64")
 }
 
+// just for debugging
 function msgValToButt2(msgVal) {
   // content as bipf
   const contentBipf = bipf.allocAndEncode(msgVal.content)
@@ -174,7 +176,7 @@ function msgValToButt2(msgVal) {
     contentHash
   ]
 
-  // encoded for signatures
+  // encoded for signature
   const encodedValue = bipf.allocAndEncode(value)
 
   return bipf.allocAndEncode([encodedValue, msgVal.signature, contentBipf])
@@ -235,7 +237,7 @@ function bipfToButt2(buffer) {
     contentHash
   ]
 
-  // encoded for signatures
+  // encoded for signature
   const encodedValue = bipf.allocAndEncode(value)
 
   return bipf.allocAndEncode([encodedValue, signatureBuffer, contentBipf])
@@ -266,7 +268,8 @@ function encodeNew(content, keys, parentBFE, sequence, previousBFE, timestamp,
   const encodedValue = bipf.allocAndEncode(value)
   const signature = signatureToBFE(ssbKeys.sign(keys, hmacKey, encodedValue))
 
-  const msgKeyBFE = msgIdToBFE(blake3.hash(Buffer.concat([encodedValue, signature])))
+  const valueSignature = Buffer.concat([encodedValue, signature])
+  const msgKeyBFE = msgIdToBFE(blake3.hash(valueSignature))
 
   return [
     msgKeyBFE,
