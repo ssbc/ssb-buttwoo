@@ -14,7 +14,7 @@ const keys = {
 }
 
 const authorBFE = Buffer.concat([
-  bfe.toTF('feed', 'butt2-v1'),
+  bfe.toTF('feed', 'buttwoo-v1'),
   Buffer.from(keys.public.substring(0, keys.public.indexOf('.')), "base64")
 ])
 
@@ -34,10 +34,10 @@ tape('encode/decode works', function (t) {
   
   //console.log(jsonMsg)
 
-  const msgKey = 'ssb:message/butt2-v1/MoYyBUyfT-l0rxeY6fZ7eJebznkqhD39dYp-vSTUThQ='
+  const msgKey = 'ssb:message/buttwoo-v1/dN-xH6liM_cGDA-43YSY6LUCb7CCl_G6a83F7UbsN-E='
 
   t.deepEqual(jsonMsg.key, msgKey, 'key is correct')
-  t.deepEqual(jsonMsg.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
+  t.deepEqual(jsonMsg.value.author, 'ssb:feed/buttwoo-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
   t.deepEqual(jsonMsg.value.parent, null, 'correct parent')
   t.deepEqual(jsonMsg.value.sequence, 1, 'correct sequence')
   t.deepEqual(jsonMsg.value.previous, null, 'correct previous')
@@ -57,8 +57,8 @@ tape('encode/decode works', function (t) {
 
   //console.log(jsonMsg2)
 
-  t.deepEqual(jsonMsg2.key, 'ssb:message/butt2-v1/H0Gw3UsQ4lC6LAYwesR5-x-T8GJyFXv4AlhPE0nF-RY=', 'key is correct')
-  t.deepEqual(jsonMsg2.value.author, 'ssb:feed/butt2-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
+  t.deepEqual(jsonMsg2.key, 'ssb:message/buttwoo-v1/dQ8CN5zDyR0ubZ94kt_sQIHA3_rc9-xfu1HWmQTb46Q=', 'key is correct')
+  t.deepEqual(jsonMsg2.value.author, 'ssb:feed/buttwoo-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
   t.deepEqual(jsonMsg2.value.parent, null, 'correct parent')
   t.deepEqual(jsonMsg2.value.sequence, 2, 'correct sequence')
   t.deepEqual(jsonMsg2.value.previous, msgKey, 'correct previous')

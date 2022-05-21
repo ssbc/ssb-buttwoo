@@ -1,11 +1,11 @@
 {
-  "name": "ssb-butt2",
+  "name": "ssb-buttwoo",
   "description": "A binary feed format for SSB",
   "version": "0.0.1",
-  "homepage": "https://github.com/arj03/ssb-butt2",
+  "homepage": "https://github.com/ssbc/ssb-buttwoo",
   "repository": {
     "type": "git",
-    "url": "git://github.com/arj03/ssb-butt2.git"
+    "url": "git://github.com/ssbc/ssb-buttwoo.git"
   },
   "dependencies": {
     "bipf": "^1.6.3",
