@@ -45,8 +45,6 @@ function butt2ToBipf(data, msgKeyBFE) {
   const previous = bfe.decode(previousBFE)
   const msgKey = bfe.decode(msgKeyBFE)
 
-  // FIXME: encode signature?
-
   let valueObjSize = authorLength
   valueObjSize += bipf.encodingLength(author)
   valueObjSize += parentLength
@@ -161,7 +159,6 @@ function msgValToButt2(msgVal) {
   const authorBFE = bfe.encode(msgVal.author)
   const parentBFE = bfe.encode(msgVal.parent)
   const previousBFE = bfe.encode(msgVal.previous)
-  // FIXME: decode signature?
 
   const value = [
     authorBFE,
