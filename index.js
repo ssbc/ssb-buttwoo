@@ -136,7 +136,7 @@ function msgIdToBFE(buffer) {
 
 function hashToBFE(buffer) {
   return Buffer.concat([
-    bfe.toTF('blob', 'buttwoo-v1'),
+    Buffer.from([0]),
     buffer
   ])
 }
@@ -308,6 +308,9 @@ function validateBase(data, previousData, previousKeyBFE) {
     // encrypted
     contentBuffer = base64ToBuffer(encodedContent)
   }
+
+  if (contentHash.length !== 33)
+    return new Error('Content hash wrong size')
 
   if (contentBuffer.length !== contentSize)
     return new Error('Content size does not match content')

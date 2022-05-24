@@ -34,7 +34,7 @@ tape('encode/decode works', function (t) {
   
   //console.log(jsonMsg)
 
-  const msgKey = 'ssb:message/buttwoo-v1/dN-xH6liM_cGDA-43YSY6LUCb7CCl_G6a83F7UbsN-E='
+  const msgKey = 'ssb:message/buttwoo-v1/rVrR6TMqjQ2ZeC6JRjG7O8Jh1-ETD0_s-IrRJt41eIE='
 
   t.deepEqual(jsonMsg.key, msgKey, 'key is correct')
   t.deepEqual(jsonMsg.value.author, 'ssb:feed/buttwoo-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
@@ -57,7 +57,7 @@ tape('encode/decode works', function (t) {
 
   //console.log(jsonMsg2)
 
-  t.deepEqual(jsonMsg2.key, 'ssb:message/buttwoo-v1/dQ8CN5zDyR0ubZ94kt_sQIHA3_rc9-xfu1HWmQTb46Q=', 'key is correct')
+  t.deepEqual(jsonMsg2.key, 'ssb:message/buttwoo-v1/4_ORizStn0E-4K_c-SnjkShAhUa4-tB_uzftvGqBbn0=', 'key is correct')
   t.deepEqual(jsonMsg2.value.author, 'ssb:feed/buttwoo-v1/TBeLsLm3iztyYq7VgjVZn8Rmwe43mEXPdolwKjb2eFM=', 'author is correct')
   t.deepEqual(jsonMsg2.value.parent, null, 'correct parent')
   t.deepEqual(jsonMsg2.value.sequence, 2, 'correct sequence')
