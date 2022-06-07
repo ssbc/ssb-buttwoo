@@ -8,10 +8,12 @@
     "url": "git://github.com/ssbc/ssb-buttwoo.git"
   },
   "dependencies": {
-    "bipf": "^1.6.3",
+    "bipf": "^1.7.0",
     "blake3": "^2.1.7",
-    "ssb-bfe": "^3.1.3",
-    "ssb-keys": "^8.2.1"
+    "fast-varint": "^1.0.1",
+    "monotonic-timestamp": "^0.0.9",
+    "ssb-bfe": "^3.3.0",
+    "ssb-keys": "^8.3.0"
   },
   "devDependencies": {
     "tap-arc": "^0.3.4",
