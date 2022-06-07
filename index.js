@@ -17,9 +17,6 @@ function extractData(b) {
   ]
 }
 
-const TAG_SIZE = 3
-const TAG_MASK = 7
-
 function butt2ToBipf(data, msgKeyBFE) {
   const [butt2, signature, encodedContent] = data[0]
   const [authorBFE, parentBFE, sequence, timestamp,
@@ -112,6 +109,9 @@ function msgValToButt2(msgVal) {
   return bipf.allocAndEncode([encodedValue, msgVal.signature, contentBipf])
 }
 
+const TAG_SIZE = 3
+const TAG_MASK = 7
+
 const BIPF_VALUE = bipf.allocAndEncode('value')
 
 // buffer is kvt
@@ -180,7 +180,7 @@ function bipfToButt2(buffer) {
   return bipf.allocAndEncode([encodedValue, signatureBuffer, encodedContent])
 }
 
-const BFE_NIL = Buffer.from([6,2])
+const BFE_NIL = bfe.toTF('generic', 'nil')
 
 function encodeNew(content, keys, parentBFE, sequence, previous, timestamp,
                    tag, hmacKey, sbot)
