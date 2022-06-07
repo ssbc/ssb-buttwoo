@@ -2,7 +2,8 @@ const bipf = require('bipf')
 const bfe = require('ssb-bfe')
 const blake3 = require('blake3')
 const ssbKeys = require('ssb-keys')
-const varint = require('varint')
+const varint = require('fast-varint')
+const mtimestamp = require('monotonic-timestamp')
 
 function extractData(b) {
   const [encodedValue, signature, encodedContent] = bipf.decode(b, 0)
@@ -16,24 +17,8 @@ function extractData(b) {
   ]
 }
 
-const authorLength = bipf.encodingLength('author')
-const parentLength = bipf.encodingLength('parent')
-const sequenceLength = bipf.encodingLength('sequence')
-const timestampLength = bipf.encodingLength('timestamp')
-const previousLength = bipf.encodingLength('previous')
-const signatureLength = bipf.encodingLength('signature')
-const tagLength = bipf.encodingLength('tag')
-const contentLength = bipf.encodingLength('content')
-const contentHashLength = bipf.encodingLength('contentHash')
-const keyLength = bipf.encodingLength('key')
-const valueLength = bipf.encodingLength('value')
-
 const TAG_SIZE = 3
 const TAG_MASK = 7
-
-function varintLength(len) {
-  return varint.encodingLength(len << TAG_SIZE) + len
-}
 
 function butt2ToBipf(data, msgKeyBFE) {
   const [butt2, signature, encodedContent] = data[0]
@@ -45,76 +30,26 @@ function butt2ToBipf(data, msgKeyBFE) {
   const previous = bfe.decode(previousBFE)
   const msgKey = bfe.decode(msgKeyBFE)
 
-  let valueObjSize = authorLength
-  valueObjSize += bipf.encodingLength(author)
-  valueObjSize += parentLength
-  valueObjSize += bipf.encodingLength(parent)
-  valueObjSize += sequenceLength
-  valueObjSize += bipf.encodingLength(sequence)
-  valueObjSize += timestampLength
-  valueObjSize += bipf.encodingLength(timestamp)
-  valueObjSize += previousLength
-  valueObjSize += bipf.encodingLength(previous)
-  valueObjSize += contentLength
-  valueObjSize += Buffer.isBuffer(encodedContent) ? encodedContent.length : bipf.encodingLength(encodedContent)
-  valueObjSize += signatureLength
-  valueObjSize += bipf.encodingLength(signature)
-  valueObjSize += tagLength
-  valueObjSize += bipf.encodingLength(tag)
-  valueObjSize += contentHashLength
-  valueObjSize += bipf.encodingLength(contentHash)
+  if (Buffer.isBuffer(encodedContent))
+    encodedContent._IS_BIPF_ENCODED = true
   
-  let kvtObjSize = keyLength
-  kvtObjSize += bipf.encodingLength(msgKey)
-  kvtObjSize += valueLength
-  kvtObjSize += varintLength(valueObjSize)
-
-  const totalKVTObjSize = varintLength(kvtObjSize)
-  const kvtBuffer = Buffer.allocUnsafe(totalKVTObjSize)
-  let p = 0
-
-  // write TL
-  varint.encode((kvtObjSize << TAG_SIZE) | bipf.types.object,
-                kvtBuffer, p)
-  p += varint.encode.bytes
-
-  // write V
-  p += bipf.encode('key', kvtBuffer, p)
-  p += bipf.encode(msgKey, kvtBuffer, p)
-
-  p += bipf.encode('value', kvtBuffer, p)
-
-  // write TL
-  varint.encode((valueObjSize << TAG_SIZE) | bipf.types.object,
-                kvtBuffer, p)
-  p += varint.encode.bytes
-
-  // write V
-  p += bipf.encode('author', kvtBuffer, p)
-  p += bipf.encode(author, kvtBuffer, p)
-  p += bipf.encode('parent', kvtBuffer, p)
-  p += bipf.encode(parent, kvtBuffer, p)
-  p += bipf.encode('sequence', kvtBuffer, p)
-  p += bipf.encode(sequence, kvtBuffer, p)
-  p += bipf.encode('timestamp', kvtBuffer, p)
-  p += bipf.encode(timestamp, kvtBuffer, p)
-  p += bipf.encode('previous', kvtBuffer, p)
-  p += bipf.encode(previous, kvtBuffer, p)
-  p += bipf.encode('content', kvtBuffer, p)
-  if (Buffer.isBuffer(encodedContent)) {
-    encodedContent.copy(kvtBuffer, p, 0, encodedContent.length)
-    p += encodedContent.length
-  } else {
-    p += bipf.encode(encodedContent, kvtBuffer, p)
+  const kvt = {
+    key: msgKey,
+    value: {
+      author,
+      parent,
+      sequence,
+      timestamp,
+      previous,
+      content: encodedContent,
+      contentHash,
+      signature,
+      tag
+    },
+    timestamp: mtimestamp()
   }
-  p += bipf.encode('contentHash', kvtBuffer, p)
-  p += bipf.encode(contentHash, kvtBuffer, p)
-  p += bipf.encode('signature', kvtBuffer, p)
-  p += bipf.encode(signature, kvtBuffer, p)
-  p += bipf.encode('tag', kvtBuffer, p)
-  p += bipf.encode(tag, kvtBuffer, p)
-  
-  //console.log("msg", bipf.decode(kvtBuffer, 0))
+  const kvtBuffer = bipf.allocAndEncode(kvt)
+
   return kvtBuffer
 }
 
