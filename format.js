@@ -70,14 +70,8 @@ function isNativeMsg(x) {
 }
 
 function isAuthor(author) {
-  // FIXME: ssb-uri2 needs to be updated so that it supports both
-  // ssb:feed/buttwoo-v1/$AUTHOR and ssb:feed/buttwoo-v1/$AUTHOR/$PARENT
-  // Then we can delete the right-hand side of the OR.
   if (typeof author !== 'string') return false
-  return (
-    author.startsWith('ssb:feed/buttwoo-v1/') ||
-    SSBURI.isButtwooV1FeedSSBURI(author)
-  )
+  return SSBURI.isButtwooV1FeedSSBURI(author)
 }
 
 function toPlaintextBuffer(opts) {
@@ -91,7 +85,12 @@ const tags = {
 }
 
 function newNativeMsg(opts) {
-  // FIXME: validate opts.tag
+  if (typeof opts.tag !== 'number') {
+    throw new Error('opts requires opts.tag, it must be a number')
+  }
+  if (opts.tag < 0 || opts.tag > 2) {
+    throw new Error('opts.tag must be either 0, 1 or 2')
+  }
   const authorBFE = bfe.encode(opts.keys.id)
   const previous = opts.previous || { key: null, value: { sequence: 0 } }
   const previousBFE = bfe.encode(previous.key)

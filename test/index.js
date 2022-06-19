@@ -12,6 +12,7 @@ test('passes ssb-feed-format', (t) => {
   check(
     format,
     () => ssbKeys.generate(null, 'alice', 'buttwoo-v1'),
+    { tag: 0 },
     (err) => {
       t.error(err, 'no error')
       if (err) console.log(err)
