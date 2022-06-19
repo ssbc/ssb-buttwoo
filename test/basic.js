@@ -170,7 +170,7 @@ tape('validate', (t) => {
 })
 
 tape('validate many', function (t) {
-  const N = 100000
+  const N = 4000
   const hmacKey = null
   const content = { type: 'post', text: 'Hello world!' }
   const timestamp = 1652037377204

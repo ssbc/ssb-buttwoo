@@ -6,7 +6,7 @@ const bipf = require('bipf')
 const bfe = require('ssb-bfe')
 const ssbKeys = require('ssb-keys')
 const makeContentHash = require('./content-hash')
-const { extract } = require('./extract')
+const { extract, extractVal } = require('./extract')
 const { getMsgIdBFE } = require('./get-msg-id')
 
 function validate(nativeMsg, prevNativeMsg, hmacKey, cb) {
@@ -43,7 +43,6 @@ function validateSync(nativeMsg, prevNativeMsg, hmacKey) {
   if ((err = _validateSize(nativeMsg))) return err
 
   const [encodedVal, sigBuf, contentBuf] = extract(nativeMsg)
-  const valArray = bipf.decode(encodedVal)
   const [
     authorBFE,
     parentBFE,
@@ -53,7 +52,7 @@ function validateSync(nativeMsg, prevNativeMsg, hmacKey) {
     tag,
     contentSize,
     contentHash,
-  ] = valArray
+  ] = extractVal(encodedVal)
 
   if ((err = _validateTag(tag))) return err
   if ((err = _validateSequence(sequence))) return err
@@ -67,7 +66,7 @@ function validateSync(nativeMsg, prevNativeMsg, hmacKey) {
   if (sequence === 1) {
     if ((err = _validateFirstPrevious(previousBFE, prevNativeMsg))) return err
   } else {
-    if ((err = _validatePrevious(valArray, prevNativeMsg))) return err
+    if ((err = _validatePrevious(encodedVal, prevNativeMsg))) return err
   }
 }
 
@@ -219,8 +218,9 @@ function _validateFirstPrevious(previousBFE, prevNativeMsg) {
   }
 }
 
-function _validatePrevious(valArray, prevNativeMsg) {
-  const [authorBFE, parentBFE, sequence, timestamp, previousBFE] = valArray
+function _validatePrevious(encodedVal, prevNativeMsg) {
+  const [authorBFE, parentBFE, sequence, timestamp, previousBFE] =
+    extractVal(encodedVal)
   if (!Buffer.isBuffer(previousBFE)) {
     return new Error(`invalid message: expected previous to be a buffer`)
   }
@@ -242,7 +242,7 @@ function _validatePrevious(valArray, prevNativeMsg) {
     timestampPrev,
     previousBFEPrev,
     tagPrev,
-  ] = bipf.decode(encodedValuePrev)
+  ] = extractVal(encodedValuePrev)
   if (tagPrev[0] === 2) {
     // prettier-ignore
     return new Error('invalid message: previous message is a tombstone')
@@ -271,7 +271,7 @@ function _validatePrevious(valArray, prevNativeMsg) {
 
 function _validateSignature(nativeMsg, hmacKey) {
   const [encodedVal, sigBuf] = extract(nativeMsg)
-  const [authorBFE] = bipf.decode(encodedVal)
+  const [authorBFE] = extractVal(encodedVal)
 
   if (!Buffer.isBuffer(sigBuf)) {
     return new Error('invalid message: signature must be a buffer')

@@ -15,7 +15,7 @@ const {
   validateBatchSync,
 } = require('./validation')
 const { getMsgId } = require('./get-msg-id')
-const { extract } = require('./extract')
+const { extract, extractVal } = require('./extract')
 
 function _base64ToBuffer(str) {
   var i = str.indexOf('.')
@@ -39,16 +39,7 @@ function getFeedId(nativeMsg) {
     return _feedIdCache.get(nativeMsg)
   }
   const [encodedValue] = extract(nativeMsg)
-  let authorBFE
-  let parentBFE
-  bipf.iterate(encodedValue, 0, (b, pointer) => {
-    if (!authorBFE) {
-      authorBFE = bipf.decode(b, pointer)
-    } else if (!parentBFE) {
-      parentBFE = bipf.decode(b, pointer)
-      return true // abort the bipf.iterate
-    }
-  })
+  const [authorBFE, parentBFE] = extractVal(encodedValue)
   const author = bfe.decode(authorBFE)
   const parent = bfe.decode(parentBFE)
   if (parent) {
@@ -64,14 +55,7 @@ function getFeedId(nativeMsg) {
 
 function getSequence(nativeMsg) {
   const [encodedVal] = extract(nativeMsg)
-  let sequence
-  let i = 0
-  bipf.iterate(encodedVal, 0, (b, pointer) => {
-    if (i++ === 2) {
-      sequence = bipf.decode(b, pointer)
-      return true // abort the bipf.iterate
-    }
-  })
+  const [authorBFE, parentBFE, sequence] = extractVal(encodedVal)
   return sequence
 }
 
@@ -151,7 +135,7 @@ function _fromNativeMsgJS(nativeMsg) {
     tag,
     contentLength,
     contentHashBuf,
-  ] = bipf.decode(encodedVal)
+  ] = extractVal(encodedVal)
   const author = bfe.decode(authorBFE)
   const parent = bfe.decode(parentBFE)
   const previous = bfe.decode(previousBFE)
@@ -187,7 +171,7 @@ function _fromNativeMsgBIPF(nativeMsg) {
     tag,
     contentLength,
     contentHash,
-  ] = bipf.decode(encodedVal)
+  ] = extractVal(encodedVal)
   const author = bfe.decode(authorBFE)
   const parent = bfe.decode(parentBFE)
   const previous = bfe.decode(previousBFE)

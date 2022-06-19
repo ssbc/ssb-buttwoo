@@ -16,7 +16,6 @@ function extract(nativeMsg) {
   return arr
 }
 
-// FIXME: try if this will improve perf. if it will, use it
 function extractVal(encodedVal) {
   if (_extractValCache.has(encodedVal)) {
     return _extractValCache.get(encodedVal)
