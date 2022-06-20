@@ -19,7 +19,7 @@
     "fast-varint": "^1.0.1",
     "monotonic-timestamp": "^0.0.9",
     "ssb-bfe": "^3.3.0",
-    "ssb-keys": "^8.3.0",
+    "ssb-keys": "^8.4.0",
     "ssb-uri2": "^1.9.0"
   },
   "devDependencies": {
