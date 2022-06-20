@@ -11,8 +11,9 @@ const { getMsgIdBFE } = require('./get-msg-id')
 
 function validate(nativeMsg, prevNativeMsg, hmacKey, cb) {
   let err
-  if ((err = _validateBase(nativeMsg, prevNativeMsg, hmacKey))) return cb(err)
-  if ((err = _validateSignature(nativeMsg, hmacKey))) return cb(err)
+  if ((err = validateSync(nativeMsg, prevNativeMsg, hmacKey))) {
+    return cb(err)
+  }
   cb()
 }
 
