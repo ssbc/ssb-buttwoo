@@ -28,6 +28,7 @@ function validateBatch(nativeMsgs, prevNativeMsg, hmacKey, cb) {
   if ((err = validateBatchSync(nativeMsgs, prevNativeMsg, hmacKey))) {
     return cb(err)
   }
+  cb()
 }
 
 function validateBatchSync(nativeMsgs, prevNativeMsg, hmacKey) {
