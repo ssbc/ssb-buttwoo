@@ -115,6 +115,42 @@ tape('extract author + sequence', function (t) {
   t.end()
 })
 
+tape('parent', function (t) {
+  const hmacKey = null
+  const content = { type: 'post', text: 'Hello world!' }
+  const timestamp = 1652037377204
+
+  const butt2Msg = butt2.newNativeMsg({
+    keys,
+    content,
+    previous: null,
+    timestamp,
+    tag: butt2.tags.SSB_FEED,
+    hmacKey,
+  })
+  const butt2MsgId = butt2.getMsgId(butt2Msg)
+
+  t.ok(butt2.isNativeMsg(butt2Msg), 'isNative works')
+
+  const butt2Msg2 = butt2.newNativeMsg({
+    keys,
+    parent: butt2MsgId,
+    content,
+    previous: null,
+    timestamp,
+    tag: butt2.tags.SSB_FEED,
+    hmacKey,
+  })
+
+  t.ok(butt2.isNativeMsg(butt2Msg2), 'isNative works with a parent')
+
+  const jsMsgVal = butt2.fromNativeMsg(butt2Msg2)
+
+  t.equal(jsMsgVal.parent, butt2MsgId, 'parent in decoded msg works')
+
+  t.end()
+})
+
 tape('validate', (t) => {
   const hmacKey = null
   const timestamp = 1652037377204
