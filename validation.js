@@ -106,9 +106,9 @@ function _validateHmac(hmacKey) {
 }
 
 function _validateSize(nativeMsg) {
-  if (nativeMsg.length > 8192) {
+  if (nativeMsg.length > 16384) {
     // prettier-ignore
-    return new Error(`invalid message size: ${nativeMsg.length} bytes, must not be greater than 8192 bytes`)
+    return new Error(`invalid message size: ${nativeMsg.length} bytes, must not be greater than 16384 bytes`)
   }
 }
 
