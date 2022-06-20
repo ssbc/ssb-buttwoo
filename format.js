@@ -46,7 +46,7 @@ function getFeedId(nativeMsg) {
     const { data } = SSBURI.decompose(parent)
     const feedId = author + '/' + data
     _feedIdCache.set(nativeMsg, feedId)
-    return author + '/' + data
+    return feedId
   } else {
     _feedIdCache.set(nativeMsg, author)
     return author
