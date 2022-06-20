@@ -120,7 +120,7 @@ function newNativeMsg(opts) {
   return bipf.allocAndEncode([encodedValue, sigBuf, contentBuffer])
 }
 
-function _fromNativeMsgJS(nativeMsg) {
+function _fromNativeToJSMsg(nativeMsg) {
   if (_jsMsgValCache.has(nativeMsg)) {
     return _jsMsgValCache.get(nativeMsg)
   }
@@ -156,7 +156,7 @@ function _fromNativeMsgJS(nativeMsg) {
   return msgVal
 }
 
-function _fromNativeMsgBIPF(nativeMsg) {
+function _fromNativeToBIPFMsg(nativeMsg) {
   if (_bipfMsgValCache.has(nativeMsg)) {
     return _bipfMsgValCache.get(nativeMsg)
   }
@@ -194,9 +194,9 @@ function _fromNativeMsgBIPF(nativeMsg) {
 
 function fromNativeMsg(nativeMsg, encoding = 'js') {
   if (encoding === 'js') {
-    return _fromNativeMsgJS(nativeMsg)
+    return _fromNativeToJSMsg(nativeMsg)
   } else if (encoding === 'bipf') {
-    return _fromNativeMsgBIPF(nativeMsg)
+    return _fromNativeToBIPFMsg(nativeMsg)
   } else {
     // prettier-ignore
     throw new Error(`Feed format "${name}" does not support encoding "${encoding}"`)
@@ -213,7 +213,7 @@ function fromDecryptedNativeMsg(plaintextBuf, nativeMsg, encoding = 'js') {
   return msgVal
 }
 
-function _toNativeMsgJS(msgVal) {
+function _toNativeFromJSMsg(msgVal) {
   const authorBFE = bfe.encode(msgVal.author)
   const parentBFE = bfe.encode(msgVal.parent)
   const sequence = msgVal.sequence
@@ -237,7 +237,7 @@ function _toNativeMsgJS(msgVal) {
   return bipf.allocAndEncode([encodedValue, signature, contentBuffer])
 }
 
-function _toNativeMsgBIPF(buffer) {
+function _toNativeFromBIPFMsg(buffer) {
   let authorBFE, parentBFE, sequence, timestamp, previousBFE
   let tagBuffer, contentBuffer, contentLen, contentHash, sigBuf
 
@@ -294,9 +294,9 @@ function _toNativeMsgBIPF(buffer) {
 
 function toNativeMsg(msgVal, encoding = 'js') {
   if (encoding === 'js') {
-    return _toNativeMsgJS(msgVal)
+    return _toNativeFromJSMsg(msgVal)
   } else if (encoding === 'bipf') {
-    return _toNativeMsgBIPF(msgVal)
+    return _toNativeFromBIPFMsg(msgVal)
   } else {
     // prettier-ignore
     throw new Error(`Feed format "${name}" does not support encoding "${encoding}"`)
