@@ -171,6 +171,7 @@ tape('validate', (t) => {
 
 tape('validate many', function (t) {
   const N = 4000
+  const M = 100
   const hmacKey = null
   const content = { type: 'post', text: 'Hello world!' }
   const timestamp = 1652037377204
@@ -193,11 +194,11 @@ tape('validate many', function (t) {
     nativeMsgs.push(butt2Msg)
   }
 
-  var isOk = true
+  let isOk = true
+  let err = null
 
   // validate single all, take time
   const startSingle = new Date()
-  let err = null
   for (let i = 0; i < N; ++i) {
     const prevNativeMsg = i === 0 ? null : nativeMsgs[i - 1]
     if ((err = butt2.validateSync(nativeMsgs[i], prevNativeMsg, hmacKey))) {
@@ -212,11 +213,11 @@ tape('validate many', function (t) {
 
   isOk = true
   const startBatch = new Date()
-  for (let i = 0; i < N; i += 100) {
+  for (let i = 0; i < N; i += M) {
     const prevNativeMsg = i === 0 ? null : nativeMsgs[i - 1]
     if (
       (err = butt2.validateBatchSync(
-        nativeMsgs.slice(i, i + 25),
+        nativeMsgs.slice(i, i + M),
         prevNativeMsg,
         hmacKey
       ))
