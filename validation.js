@@ -11,9 +11,15 @@ const { getMsgIdBFE } = require('./get-msg-id')
 
 function validate(nativeMsg, prevNativeMsg, hmacKey, cb) {
   let err
-  if ((err = validateSync(nativeMsg, prevNativeMsg, hmacKey))) return cb(err)
+  if ((err = _validateBase(nativeMsg, prevNativeMsg, hmacKey))) return cb(err)
   if ((err = _validateSignature(nativeMsg, hmacKey))) return cb(err)
   cb()
+}
+
+function validateSync(nativeMsg, prevNativeMsg, hmacKey) {
+  let err
+  if ((err = _validateBase(nativeMsg, prevNativeMsg, hmacKey))) return err
+  if ((err = _validateSignature(nativeMsg, hmacKey))) return err
 }
 
 function validateBatch(nativeMsgs, prevNativeMsg, hmacKey, cb) {
@@ -27,7 +33,7 @@ function validateBatchSync(nativeMsgs, prevNativeMsg, hmacKey) {
   let err
   for (let i = 0; i < nativeMsgs.length; ++i) {
     const nativeMsg = nativeMsgs[i]
-    if ((err = validateSync(nativeMsg, prevNativeMsg, hmacKey))) return err
+    if ((err = _validateBase(nativeMsg, prevNativeMsg, hmacKey))) return err
     prevNativeMsg = nativeMsg
   }
 
@@ -36,7 +42,7 @@ function validateBatchSync(nativeMsgs, prevNativeMsg, hmacKey) {
   if ((err = _validateSignature(lastNativeMsg, hmacKey))) return err
 }
 
-function validateSync(nativeMsg, prevNativeMsg, hmacKey) {
+function _validateBase(nativeMsg, prevNativeMsg, hmacKey) {
   let err
   if ((err = _validateShape(nativeMsg))) return err
   if ((err = _validateHmac(hmacKey))) return err
