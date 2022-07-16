@@ -34,14 +34,34 @@ const _feedIdCache = new WeakMap()
 const _jsMsgValCache = new WeakMap()
 const _bipfMsgValCache = new WeakMap()
 
+const Base64 = {
+  unsafeToSafe(input) {
+    return input.replace(/\+/g, '-').replace(/\//g, '_')
+  },
+}
+
+const BFENil = Buffer.from([6, 2])
+
+function authorBFEToString(authorBFE) {
+  const data = authorBFE.slice(2).toString('base64')
+  return `ssb:feed/buttwoo-v1/${Base64.unsafeToSafe(data)}`
+}
+
+function messageBFEToString(messageBFE) {
+  if (messageBFE.compare(BFENil) === 0) return null
+
+  const data = messageBFE.slice(2).toString('base64')
+  return `ssb:message/buttwoo-v1/${Base64.unsafeToSafe(data)}`
+}
+
 function getFeedId(nativeMsg) {
   if (_feedIdCache.has(nativeMsg)) {
     return _feedIdCache.get(nativeMsg)
   }
   const [encodedValue] = extract(nativeMsg)
   const [authorBFE, parentBFE] = extractVal(encodedValue)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
+  const author = authorBFEToString(authorBFE)
+  const parent = messageBFEToString(parentBFE)
   if (parent) {
     const { data } = SSBURI.decompose(parent)
     const feedId = author + '/' + data
@@ -135,9 +155,9 @@ function _fromNativeToJSMsg(nativeMsg) {
     contentLength,
     contentHashBuf,
   ] = extractVal(encodedVal)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
-  const previous = bfe.decode(previousBFE)
+  const author = authorBFEToString(authorBFE)
+  const parent = messageBFEToString(parentBFE)
+  const previous = messageBFEToString(previousBFE)
   const content = bipf.decode(contentBuf)
   const contentHash = contentHashBuf
   const signature = sigBuf
@@ -171,9 +191,9 @@ function _fromNativeToBIPFMsg(nativeMsg) {
     contentLength,
     contentHash,
   ] = extractVal(encodedVal)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
-  const previous = bfe.decode(previousBFE)
+  const author = authorBFEToString(authorBFE)
+  const parent = messageBFEToString(parentBFE)
+  const previous = messageBFEToString(previousBFE)
   const signature = sigBuf
   bipf.markIdempotent(contentBuf)
   const msgVal = {
