@@ -257,6 +257,15 @@ function _toNativeFromJSMsg(msgVal) {
   return bipf.allocAndEncode([encodedValue, signature, contentBuffer])
 }
 
+function fastEncode(str) {
+  if (str === null) return BFENil
+
+  let [typeName, formatName, data] = str.substring(4).split('/')
+  const tf = bfe.toTF(typeName, formatName)
+  const d = Buffer.from(data, 'base64')
+  return Buffer.concat([tf, d])
+}
+
 function _toNativeFromBIPFMsg(buffer) {
   let authorBFE, parentBFE, sequence, timestamp, previousBFE
   let tagBuffer, contentBuffer, contentLen, contentHash, sigBuf
@@ -275,13 +284,13 @@ function _toNativeFromBIPFMsg(buffer) {
 
     const key = bipf.decode(buffer, keyStart)
     if (key === 'author')
-      authorBFE = bfe.encode(bipf.decode(buffer, valueStart))
+      authorBFE = fastEncode(bipf.decode(buffer, valueStart))
     else if (key === 'parent')
-      parentBFE = bfe.encode(bipf.decode(buffer, valueStart))
+      parentBFE = fastEncode(bipf.decode(buffer, valueStart))
     else if (key === 'sequence') sequence = bipf.decode(buffer, valueStart)
     else if (key === 'timestamp') timestamp = bipf.decode(buffer, valueStart)
     else if (key === 'previous')
-      previousBFE = bfe.encode(bipf.decode(buffer, valueStart))
+      previousBFE = fastEncode(bipf.decode(buffer, valueStart))
     else if (key === 'tag') tagBuffer = bipf.decode(buffer, valueStart)
     else if (key === 'content') {
       if ((valueTag & BIPF_TAG_MASK) === BIPF_STRING_TYPE) {
