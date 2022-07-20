@@ -6,6 +6,7 @@ const tape = require('tape')
 const ssbKeys = require('ssb-keys')
 const bfe = require('ssb-bfe')
 const butt2 = require('../format')
+const { extract, extractVal } = require('../extract')
 
 const keys = ssbKeys.generate(null, 'alice', 'buttwoo-v1')
 
@@ -147,6 +148,37 @@ tape('parent', function (t) {
   const jsMsgVal = butt2.fromNativeMsg(butt2Msg2)
 
   t.equal(jsMsgVal.parent, butt2MsgId, 'parent in decoded msg works')
+
+  t.end()
+})
+
+tape('year 2080', function (t) {
+  const hmacKey = null
+  const content = { type: 'post', text: 'Hello world!' }
+  const timestamp = Date.parse('01 Jan 2080 00:00:00 GMT')
+
+  const butt2Msg = butt2.newNativeMsg({
+    keys,
+    content,
+    previous: null,
+    timestamp,
+    tag: butt2.tags.SSB_FEED,
+    hmacKey,
+  })
+
+  const [encodedVal] = extract(butt2Msg)
+  const [
+    authorBFE,
+    parentBFE,
+    sequence,
+    timestampExtracted,
+    previousBFE,
+    tag,
+    contentLength,
+    contentHashBuf,
+  ] = extractVal(encodedVal)
+
+  t.equal(timestamp, timestampExtracted, 'timestamps far into the future works')
 
   t.end()
 })
