@@ -14,6 +14,7 @@
     "!example.js"
   ],
   "dependencies": {
+    "base64-url": "^2.3.3",
     "bipf": "^1.7.0",
     "blake3": "^2.1.7",
     "fast-varint": "^1.0.1",

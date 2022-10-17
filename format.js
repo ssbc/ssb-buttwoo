@@ -7,6 +7,7 @@ const bfe = require('ssb-bfe')
 const SSBURI = require('ssb-uri2')
 const varint = require('fast-varint')
 const ssbKeys = require('ssb-keys')
+const base64Url = require('base64-url')
 const makeContentHash = require('./content-hash')
 const {
   validate,
@@ -44,7 +45,7 @@ function getFeedId(nativeMsg) {
   const parent = bfe.decodeTypeFormat(parentBFE, 'message', 'buttwoo-v1')
   if (parent) {
     const { data } = SSBURI.decompose(parent)
-    const feedId = author + '/' + data
+    const feedId = author + '/' + base64Url.escape(data)
     _feedIdCache.set(nativeMsg, feedId)
     return feedId
   } else {
