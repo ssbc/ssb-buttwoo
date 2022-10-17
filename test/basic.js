@@ -6,6 +6,7 @@ const tape = require('tape')
 const ssbKeys = require('ssb-keys')
 const bfe = require('ssb-bfe')
 const butt2 = require('../format')
+const uri2 = require('ssb-uri2')
 
 const keys = ssbKeys.generate(null, 'alice', 'buttwoo-v1')
 
@@ -88,6 +89,31 @@ tape('encode/decode works', function (t) {
   // test slow version as well
   const reconstructedButt2msg2 = butt2.toNativeMsg(jsonMsg2.value)
   t.deepEqual(reconstructedButt2msg2, butt2Msg2, 'can reconstruct')
+
+  t.end()
+})
+
+tape('subfeed id', function (t) {
+  const hmacKey = null
+  const content = { type: 'post', text: 'Hello world!' }
+  const timestamp = 1652037377204
+
+  const butt2Msg = butt2.newNativeMsg({
+    keys,
+    content,
+    parent:
+      'ssb:message/buttwoo-v1/bRjv4LV9CmJp-bXR1nOGJ9Uuo8glEBmnN27ckE2SFJo=',
+    previous: null,
+    timestamp,
+    tag: butt2.tags.SUB_FEED,
+    hmacKey,
+  })
+
+  const feedId = butt2.getFeedId(butt2Msg)
+  t.equals(
+    feedId,
+    'ssb:feed/buttwoo-v1/OAiOTCroL1xFxoCKYaZJDTxhLOHaI1cURm_HSPvEy7s=/bRjv4LV9CmJp-bXR1nOGJ9Uuo8glEBmnN27ckE2SFJo'
+  )
 
   t.end()
 })
