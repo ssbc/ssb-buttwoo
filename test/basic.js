@@ -93,6 +93,31 @@ tape('encode/decode works', function (t) {
   t.end()
 })
 
+tape('subfeed id', function (t) {
+  const hmacKey = null
+  const content = { type: 'post', text: 'Hello world!' }
+  const timestamp = 1652037377204
+
+  const butt2Msg = butt2.newNativeMsg({
+    keys,
+    content,
+    parent:
+      'ssb:message/buttwoo-v1/bRjv4LV9CmJp-bXR1nOGJ9Uuo8glEBmnN27ckE2SFJo=',
+    previous: null,
+    timestamp,
+    tag: butt2.tags.SUB_FEED,
+    hmacKey,
+  })
+
+  const feedId = butt2.getFeedId(butt2Msg)
+  t.equals(
+    feedId,
+    'ssb:feed/buttwoo-v1/OAiOTCroL1xFxoCKYaZJDTxhLOHaI1cURm_HSPvEy7s=/bRjv4LV9CmJp-bXR1nOGJ9Uuo8glEBmnN27ckE2SFJo'
+  )
+
+  t.end()
+})
+
 tape('extract author + sequence', function (t) {
   const hmacKey = null
   const content = { type: 'post', text: 'Hello world!' }
