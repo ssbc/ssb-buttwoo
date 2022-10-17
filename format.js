@@ -40,8 +40,8 @@ function getFeedId(nativeMsg) {
   }
   const [encodedValue] = extract(nativeMsg)
   const [authorBFE, parentBFE] = extractVal(encodedValue)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
+  const author = bfe.decodeTypeFormat(authorBFE, 'feed', 'buttwoo-v1')
+  const parent = bfe.decodeTypeFormat(parentBFE, 'message', 'buttwoo-v1')
   if (parent) {
     const { data } = SSBURI.decompose(parent)
     const feedId = author + '/' + data
@@ -135,9 +135,9 @@ function _fromNativeToJSMsg(nativeMsg) {
     contentLength,
     contentHashBuf,
   ] = extractVal(encodedVal)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
-  const previous = bfe.decode(previousBFE)
+  const author = bfe.decodeTypeFormat(authorBFE, 'feed', 'buttwoo-v1')
+  const parent = bfe.decodeTypeFormat(parentBFE, 'message', 'buttwoo-v1')
+  const previous = bfe.decodeTypeFormat(previousBFE, 'message', 'buttwoo-v1')
   const content = bipf.decode(contentBuf)
   const contentHash = contentHashBuf
   const signature = sigBuf
@@ -171,9 +171,9 @@ function _fromNativeToBIPFMsg(nativeMsg) {
     contentLength,
     contentHash,
   ] = extractVal(encodedVal)
-  const author = bfe.decode(authorBFE)
-  const parent = bfe.decode(parentBFE)
-  const previous = bfe.decode(previousBFE)
+  const author = bfe.decodeTypeFormat(authorBFE, 'feed', 'buttwoo-v1')
+  const parent = bfe.decodeTypeFormat(parentBFE, 'message', 'buttwoo-v1')
+  const previous = bfe.decodeTypeFormat(previousBFE, 'message', 'buttwoo-v1')
   const signature = sigBuf
   bipf.markIdempotent(contentBuf)
   const msgVal = {
